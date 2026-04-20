@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#534AB7">
+  <title>FocusWeek</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="logo">Focus<span>Week</span></div>
+      <div class="avatar" id="avatar">T</div>
+    </header>
+
+    <nav class="tabs">
+      <button class="tab active" data-tab="today">Hoy</button>
+      <button class="tab" data-tab="week">Semana</button>
+      <button class="tab" data-tab="notes">Notas</button>
+    </nav>
+
+    <main id="view-today" class="view active">
+      <section class="hitos">
+        <div class="hitos-header">
+          <span class="hitos-title">Hitos de la semana</span>
+          <button class="btn-ghost" id="edit-hitos">Editar</button>
+        </div>
+        <ul id="hitos-list"></ul>
+      </section>
+
+      <section class="task-section" data-group="foco">
+        <div class="section-header">
+          <div class="section-left">
+            <span class="section-title">Foco</span>
+            <span class="section-sub">mueve los hitos</span>
+          </div>
+          <div class="section-right">
+            <div class="progress-wrap"><div class="progress-fill" id="bar-foco"></div></div>
+            <span class="progress-pct" id="pct-foco">0%</span>
+          </div>
+        </div>
+        <div class="task-list" id="list-foco"></div>
+        <div class="add-row">
+          <input type="text" id="add-foco" placeholder="Agregar tarea de foco...">
+          <button data-add="foco">Agregar</button>
+        </div>
+      </section>
+
+      <section class="task-section" data-group="ops">
+        <div class="section-header">
+          <div class="section-left">
+            <span class="section-title">Operativas y gestión rápida</span>
+            <span class="section-sub">llevan tiempo, no estratégicas</span>
+          </div>
+          <div class="section-right">
+            <div class="progress-wrap"><div class="progress-fill" id="bar-ops"></div></div>
+            <span class="progress-pct" id="pct-ops">0%</span>
+          </div>
+        </div>
+        <div class="task-list" id="list-ops"></div>
+        <div class="add-row">
+          <input type="text" id="add-ops" placeholder="Agregar tarea...">
+          <button data-add="ops">Agregar</button>
+        </div>
+      </section>
+    </main>
+
+    <main id="view-week" class="view">
+      <div class="week-header" id="week-header"></div>
+      <div class="week-strip" id="week-strip"></div>
+      <div class="week-progress" id="week-progress"></div>
+      <div class="week-day-label" id="week-day-label"></div>
+      <div class="task-list" id="week-task-list"></div>
+    </main>
+
+    <main id="view-notes" class="view">
+      <div class="notes-header">
+        <span class="notes-title">Mis notas</span>
+        <button class="btn-primary" id="new-note">+ Nueva</button>
+      </div>
+      <div id="notes-list"></div>
+    </main>
+
+    <div class="undo-bar" id="undo-bar" style="display:none">
+      <span id="undo-text"></span>
+      <button id="undo-btn">Deshacer</button>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal" style="display:none">
+    <div class="modal">
+      <div class="modal-header">
+        <span id="modal-title">Editar</span>
+        <button class="btn-ghost" id="modal-close">✕</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+      <div class="modal-footer">
+        <button class="btn-ghost" id="modal-cancel">Cancelar</button>
+        <button class="btn-primary" id="modal-save">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
