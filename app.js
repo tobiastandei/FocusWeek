@@ -121,7 +121,14 @@
       el.id = 'login-screen';
       el.style.cssText = 'text-align:center;padding:80px 20px;';
       el.innerHTML = `
-        <div style="font-size:40px;margin-bottom:12px;">🎯</div>
+  <div style="font-size:40px;margin-bottom:12px;">🎯</div>
+  <div style="font-size:24px;font-weight:500;margin-bottom:8px;letter-spacing:-0.02em;">FocusWeek</div>
+  <div style="font-size:14px;color:var(--text-secondary);margin-bottom:32px;">Tu semana, organizada.</div>
+  <input id="login-email" type="email" placeholder="tu@email.com" style="width:100%;max-width:280px;padding:12px;font-size:14px;font-family:var(--font);border:0.5px solid var(--border-strong);border-radius:10px;background:var(--surface);color:var(--text);outline:none;margin-bottom:10px;display:block;margin-left:auto;margin-right:auto;">
+  <button id="login-btn" style="display:inline-flex;align-items:center;gap:8px;padding:12px 28px;border:none;border-radius:10px;background:#534AB7;color:white;font-size:14px;font-family:var(--font);cursor:pointer;font-weight:500;">
+    Entrar con email
+  </button>
+  <div id="login-msg" style="margin-top:16px;font-size:13px;color:var(--text-tertiary);display:none;"></div>`;
         <div style="font-size:24px;font-weight:500;margin-bottom:8px;letter-spacing:-0.02em;">FocusWeek</div>
         <div style="font-size:14px;color:var(--text-secondary);margin-bottom:40px;">Tu semana, organizada.</div>
         <button id="login-google" style="display:inline-flex;align-items:center;gap:10px;padding:12px 24px;border:0.5px solid var(--border-strong);border-radius:10px;background:var(--surface);color:var(--text);font-size:14px;font-family:var(--font);cursor:pointer;">
