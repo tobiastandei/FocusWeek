@@ -125,7 +125,7 @@
     }
     el.style.display = 'block';
     document.getElementById('login-google').onclick = async () => {
-      await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } });
+      await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: 'https://focus-week-nine.vercel.app' } });
     };
   }
 
