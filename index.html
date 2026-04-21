@@ -7,6 +7,11 @@
   <title>FocusWeek</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="manifest" href="manifest.json"> <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  if (window.location.hash && window.location.hash.includes('access_token')) {
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+</script>
 </head>
 <body>
   <div class="app">
