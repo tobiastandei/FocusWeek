@@ -1,7 +1,14 @@
 (function () {
   const SUPABASE_URL = 'https://fssejxjrmhnubqvbkqjf.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_ozaqDcjX8pTGZWWzs5fHtQ_TcC2f20VBYaT';
-  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth: {
+      flowType: 'pkce',
+      detectSessionInUrl: true,
+      persistSession: true,
+      autoRefreshToken: true
+    }
+  });
 
   const DAYS = ['Lunes','Martes','Miércoles','Jueves','Viernes'];
   const DAY_LETTERS = ['L','M','X','J','V'];
@@ -125,7 +132,14 @@
     }
     el.style.display = 'block';
     document.getElementById('login-google').onclick = async () => {
-      await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: 'https://focus-week-nine.vercel.app' } });
+      const { error } = await sb.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: 'https://focus-week-nine.vercel.app',
+          queryParams: { access_type: 'offline', prompt: 'consent' }
+        }
+      });
+      if (error) console.error('Login error:', error);
     };
   }
 
@@ -256,7 +270,7 @@
     if(dragState.group===dropTarget.group&&dragState.idx<toPos)toPos--;
     day[dropTarget.group].splice(toPos,0,item);
     dragState=null;dropTarget=null;clearIndicators();
-    await saveTask(item,item._group||dropTarget.group,dayIdx);render();
+    await saveTask(item,dropTarget?dropTarget.group:dragState?.group,dayIdx);render();
   }
 
   function clearIndicators(){document.querySelectorAll('.drop-indicator').forEach(el=>el.classList.remove('visible'));}
@@ -453,12 +467,12 @@
 
   async function init(){
     initEvents();
-    const{data:{session}}=await sb.auth.getSession();
-    if(session?.user){currentUser=session.user;showApp();}
-    else{showLoginScreen();}
-    sb.auth.onAuthStateChange((_event,session)=>{
-      if(session?.user){currentUser=session.user;showApp();}
-      else{currentUser=null;state=getDefaultState();showLoginScreen();}
+    const { data: { session } } = await sb.auth.getSession();
+    if(session?.user){ currentUser=session.user; showApp(); }
+    else { showLoginScreen(); }
+    sb.auth.onAuthStateChange((_event, session) => {
+      if(session?.user){ currentUser=session.user; showApp(); }
+      else { currentUser=null; state=getDefaultState(); showLoginScreen(); }
     });
   }
 
