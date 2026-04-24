@@ -1,7 +1,9 @@
 (function () {
   const SUPABASE_URL = 'https://fssejxjrmhnubqvbkqjf.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZzc2VqeGpybWhudWJxdmJrcWpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NDg2NzUsImV4cCI6MjA5MjIyNDY3NX0.Bb7SK1lBEzA__-ceXK9Z4-bcd_rBHXIsIWNv_iHn1rY';
-  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true, storageKey: 'focusweek_auth' }
+});
 
   const DAYS = ['Lunes','Martes','Miércoles','Jueves','Viernes'];
   const DAY_LETTERS = ['L','M','X','J','V'];
