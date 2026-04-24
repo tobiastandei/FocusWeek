@@ -3,10 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#534AB7">
+  <meta name="theme-color" content="#6C63FF">
   <title>FocusWeek</title>
   <link rel="stylesheet" href="styles.css">
-  <link rel="manifest" href="manifest.json"> <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="manifest" href="manifest.json">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
   <div class="app">
@@ -21,85 +22,122 @@
       <button class="tab" data-tab="notes">Notas</button>
     </nav>
 
-    <main id="view-today" class="view active">
-      <section class="hitos">
+    <!-- HOY -->
+    <section class="view active" id="view-today">
+      <div class="today-header">
+        <div class="today-date" id="today-date">Hoy</div>
+        <div class="today-subtitle" id="today-subtitle"></div>
+      </div>
+
+      <div class="hitos-card">
         <div class="hitos-header">
-          <span class="hitos-title">Hitos de la semana</span>
+          <span class="hitos-label">Hitos de la semana</span>
           <button class="btn-ghost" id="edit-hitos">Editar</button>
         </div>
-        <ul id="hitos-list"></ul>
-      </section>
+        <ul class="hitos-list" id="hitos-list"></ul>
+      </div>
 
-      <section class="task-section" data-group="foco">
+      <div class="task-section">
         <div class="section-header">
-          <div class="section-left">
-            <span class="section-title">Foco</span>
-            <span class="section-sub">mueve los hitos</span>
-          </div>
-          <div class="section-right">
-            <div class="progress-wrap"><div class="progress-fill" id="bar-foco"></div></div>
-            <span class="progress-pct" id="pct-foco">0%</span>
-          </div>
+          <span class="section-title" style="color:#C0392B">Foco</span>
+          <span class="section-sub">tareas estratégicas</span>
+          <span class="section-pct" id="pct-foco">0%</span>
         </div>
+        <div class="progress-bar"><div class="progress-fill" id="bar-foco" style="width:0%;background:#C0392B"></div></div>
         <div class="task-list" id="list-foco"></div>
         <div class="add-row">
           <input type="text" id="add-foco" placeholder="Agregar tarea de foco...">
-          <button data-add="foco">Agregar</button>
+          <button class="btn-add" data-add="foco">Agregar</button>
         </div>
-      </section>
+      </div>
 
-      <section class="task-section" data-group="ops">
+      <div class="task-section">
         <div class="section-header">
-          <div class="section-left">
-            <span class="section-title">Operativas y gestión rápida</span>
-            <span class="section-sub">llevan tiempo, no estratégicas</span>
-          </div>
-          <div class="section-right">
-            <div class="progress-wrap"><div class="progress-fill" id="bar-ops"></div></div>
-            <span class="progress-pct" id="pct-ops">0%</span>
-          </div>
+          <span class="section-title" style="color:#6C63FF">Operativas</span>
+          <span class="section-sub">llevan tiempo, no estratégicas</span>
+          <span class="section-pct" id="pct-ops">0%</span>
         </div>
+        <div class="progress-bar"><div class="progress-fill" id="bar-ops" style="width:0%;background:#6C63FF"></div></div>
         <div class="task-list" id="list-ops"></div>
         <div class="add-row">
-          <input type="text" id="add-ops" placeholder="Agregar tarea...">
-          <button data-add="ops">Agregar</button>
+          <input type="text" id="add-ops" placeholder="Agregar tarea operativa...">
+          <button class="btn-add" data-add="ops">Agregar</button>
         </div>
-      </section>
-    </main>
+      </div>
+    </section>
 
-    <main id="view-week" class="view">
-      <div class="week-header" id="week-header"></div>
+    <!-- SEMANA -->
+    <section class="view" id="view-week">
+      <div class="week-header-row">
+        <div class="week-title" id="week-title">Esta semana</div>
+      </div>
+
       <div class="week-strip" id="week-strip"></div>
-      <div class="week-progress" id="week-progress"></div>
-      <div class="week-day-label" id="week-day-label"></div>
-      <div class="task-list" id="week-task-list"></div>
-    </main>
 
-    <main id="view-notes" class="view">
+      <div class="week-progress-section" id="week-progress"></div>
+
+      <div class="week-day-section">
+        <div class="week-day-label-row">
+          <div class="week-day-name" id="week-day-name">Lunes</div>
+          <div class="week-day-stats" id="week-day-stats"></div>
+        </div>
+
+        <div class="task-section">
+          <div class="section-header">
+            <span class="section-title" style="color:#C0392B">Foco</span>
+            <span class="section-pct" id="week-pct-foco">0%</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" id="week-bar-foco" style="width:0%;background:#C0392B"></div></div>
+          <div class="task-list" id="week-list-foco"></div>
+          <div class="add-row">
+            <input type="text" id="week-add-foco" placeholder="Agregar tarea de foco...">
+            <button class="btn-add" data-week-add="foco">Agregar</button>
+          </div>
+        </div>
+
+        <div class="task-section">
+          <div class="section-header">
+            <span class="section-title" style="color:#6C63FF">Operativas</span>
+            <span class="section-pct" id="week-pct-ops">0%</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" id="week-bar-ops" style="width:0%;background:#6C63FF"></div></div>
+          <div class="task-list" id="week-list-ops"></div>
+          <div class="add-row">
+            <input type="text" id="week-add-ops" placeholder="Agregar tarea operativa...">
+            <button class="btn-add" data-week-add="ops">Agregar</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- NOTAS -->
+    <section class="view" id="view-notes">
       <div class="notes-header">
-        <span class="notes-title">Mis notas</span>
-        <button class="btn-primary" id="new-note">+ Nueva</button>
+        <div class="notes-title">Notas</div>
+        <button class="btn-new-note" id="new-note">+ Nueva</button>
       </div>
-      <div id="notes-list"></div>
-    </main>
+      <div class="notes-list" id="notes-list"></div>
+    </section>
 
-    <div class="undo-bar" id="undo-bar" style="display:none">
-      <span id="undo-text"></span>
-      <button id="undo-btn">Deshacer</button>
+    <!-- MODAL -->
+    <div class="modal" id="modal">
+      <div class="modal-box">
+        <div class="modal-header">
+          <div class="modal-title" id="modal-title">Modal</div>
+          <button class="modal-close" id="modal-close">✕</button>
+        </div>
+        <div class="modal-body" id="modal-body"></div>
+        <div class="modal-footer">
+          <button class="btn-cancel" id="modal-cancel">Cancelar</button>
+          <button class="btn-save" id="modal-save">Guardar</button>
+        </div>
+      </div>
     </div>
-  </div>
 
-  <div class="modal-overlay" id="modal" style="display:none">
-    <div class="modal">
-      <div class="modal-header">
-        <span id="modal-title">Editar</span>
-        <button class="btn-ghost" id="modal-close">✕</button>
-      </div>
-      <div class="modal-body" id="modal-body"></div>
-      <div class="modal-footer">
-        <button class="btn-ghost" id="modal-cancel">Cancelar</button>
-        <button class="btn-primary" id="modal-save">Guardar</button>
-      </div>
+    <!-- UNDO -->
+    <div class="undo-bar" id="undo-bar">
+      <span class="undo-text" id="undo-text"></span>
+      <button class="undo-btn" id="undo-btn">Deshacer</button>
     </div>
   </div>
 
