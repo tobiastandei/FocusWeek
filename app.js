@@ -234,6 +234,12 @@
     div.appendChild(grip);
     div.addEventListener('dragover', e => { e.preventDefault(); if (!dragState) return; clearIndicators(); const r = div.getBoundingClientRect(); const pos = e.clientY < r.top + r.height / 2 ? idx : idx + 1; const ind = div.parentElement.querySelector('.drop-indicator[data-pos="' + pos + '"]'); if (ind) ind.classList.add('visible'); dropTarget = { group, pos, dayKey }; });
     div.addEventListener('drop', e => handleDrop(e, group, dayKey));
+    let swipeStartX = 0;
+div.addEventListener('touchstart', e => { swipeStartX = e.touches[0].clientX; }, { passive: true });
+div.addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - swipeStartX;
+  if (Math.abs(dx) > 75) { t.done = !t.done; saveTask(t, group, dayKey); render(); }
+}, { passive: true });
     const cb = document.createElement('div'); cb.className = 'cb';
     if (t.done) cb.innerHTML = '<svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2.5 6L5 8.5L9.5 3.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
     cb.addEventListener('click', async e => { e.stopPropagation(); t.done = !t.done; await saveTask(t, group, dayKey); render(); });
