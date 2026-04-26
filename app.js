@@ -171,6 +171,16 @@
 
   function renderScrollableWeek() {
     const strip = document.getElementById('day-scroll-strip'); if (!strip) return;
+// Botón cierre de semana
+let closeBtn = document.getElementById('week-close-btn');
+if (!closeBtn) {
+  closeBtn = document.createElement('button');
+  closeBtn.id = 'week-close-btn';
+  closeBtn.textContent = '🗂 Cerrar semana';
+  closeBtn.style.cssText = 'display:block;margin:0 0 16px auto;background:var(--surface2);border:0.5px solid var(--border);border-radius:8px;padding:7px 14px;font-size:12px;font-family:var(--font);color:var(--text-secondary);cursor:pointer;';
+  closeBtn.onclick = () => showWeekSummary();
+  document.getElementById('view-week').insertBefore(closeBtn, document.getElementById('day-scroll-wrap'));
+}
     const today = todayStr();
     strip.innerHTML = '';
     for (let offset = -DAYS_BACK; offset <= DAYS_FORWARD; offset++) {
@@ -320,7 +330,52 @@ div.addEventListener('touchend', e => {
     const bar = document.getElementById('undo-bar'), txt = document.getElementById('undo-text');
     if (bar && txt) { txt.textContent = '"' + (label.length > 28 ? label.slice(0, 28) + '…' : label) + '" eliminada'; bar.style.display = 'flex'; undoTimer = setTimeout(() => { bar.style.display = 'none'; undoQueue = []; }, 5000); }
   }
-
+function showWeekSummary() {
+  // Calcular la semana actual (lun-vie)
+  const today = new Date();
+  const dow = today.getDay();
+  const mondayOffset = dow === 0 ? -6 : 1 - dow;
+  const weekDays = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + mondayOffset + i);
+    weekDays.push(d.toISOString().slice(0, 10));
+  }
+  const dayNames = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+  let totalDone = 0, totalAll = 0;
+  let rows = '';
+  weekDays.forEach((dateStr, i) => {
+    const dayData = state.dayTasks[dateStr] || { foco: [], ops: [] };
+    const all = [...dayData.foco, ...dayData.ops];
+    const done = all.filter(t => t.done).length;
+    totalDone += done; totalAll += all.length;
+    if (all.length > 0) {
+      const pct = Math.round((done / all.length) * 100);
+      const color = pct === 100 ? '#1DB954' : pct >= 50 ? '#6C63FF' : '#C0392B';
+      rows += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;"><span style="font-size:12px;color:var(--text-tertiary);width:28px;font-family:var(--mono)">' + dayNames[i] + '</span><div style="flex:1;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden"><div style="width:' + pct + '%;height:100%;background:' + color + ';border-radius:3px"></div></div><span style="font-size:11px;font-family:var(--mono);color:var(--text-tertiary);min-width:36px;text-align:right">' + done + '/' + all.length + '</span></div>';
+    }
+  });
+  const pctTotal = totalAll ? Math.round((totalDone / totalAll) * 100) : 0;
+  const modal = document.getElementById('modal');
+  document.getElementById('modal-title').textContent = '📊 Resumen de semana';
+  document.getElementById('modal-body').innerHTML =
+    '<div style="text-align:center;margin-bottom:20px;"><div style="font-size:48px;font-weight:700;letter-spacing:-0.04em;color:var(--accent)">' + pctTotal + '%</div><div style="font-size:13px;color:var(--text-tertiary);margin-top:4px">' + totalDone + ' de ' + totalAll + ' tareas completadas</div></div>' +
+    (rows || '<div style="text-align:center;color:var(--text-tertiary);font-size:13px;">Sin tareas esta semana.</div>') +
+    '<div style="margin-top:16px;padding:12px;background:var(--surface2);border-radius:10px;font-size:12px;color:var(--text-tertiary);text-align:center;">Las tareas se mantienen en la semana. Podés revisarlas desde la vista Semana.</div>';
+  document.getElementById('modal-save').style.display = 'none';
+  document.getElementById('modal-cancel').textContent = 'Cerrar';
+  document.getElementById('modal-cancel').onclick = () => {
+    modal.style.display = 'none';
+    document.getElementById('modal-save').style.display = '';
+    document.getElementById('modal-cancel').textContent = 'Cancelar';
+  };
+  document.getElementById('modal-close').onclick = () => {
+    modal.style.display = 'none';
+    document.getElementById('modal-save').style.display = '';
+    document.getElementById('modal-cancel').textContent = 'Cancelar';
+  };
+  modal.style.display = 'flex';
+}
   function renderNotes() {
     const list = document.getElementById('notes-list'); if (!list) return; list.innerHTML = '';
     if (!state.notes.length) { list.innerHTML = '<div style="font-size:13px;color:var(--text-tertiary);padding:20px 0;text-align:center;">Sin notas todavía.<br>Clickeá + Nueva para crear una.</div>'; return; }
