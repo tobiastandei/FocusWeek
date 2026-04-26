@@ -118,7 +118,19 @@ html, body { background: var(--bg); color: var(--text); font-family: var(--font)
 
 .scroll-day-pill { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 10px; border-radius: 12px; background: var(--surface); border: 0.5px solid var(--border); cursor: pointer; transition: all 0.15s; min-width: 52px; }
 .scroll-day-pill:hover { border-color: var(--border-strong); }
-.scroll-day-pill.today { border-color: var(--accent); }
+.scroll-day-pill.today {
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 0 2px rgba(108,99,255,0.25);
+}
+.scroll-day-pill.today .scroll-day-letter { color: var(--accent); font-weight: 700; }
+.scroll-day-pill.today .scroll-day-num { color: var(--accent); }
+.scroll-day-pill.today.selected {
+  background: var(--accent);
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 0 3px rgba(108,99,255,0.4);
+}
+.scroll-day-pill.today.selected .scroll-day-letter,
+.scroll-day-pill.today.selected .scroll-day-num { color: white; }
 .scroll-day-pill.selected { background: var(--accent); border-color: var(--accent); }
 .scroll-day-pill.selected .scroll-day-letter,
 .scroll-day-pill.selected .scroll-day-num { color: white; }
