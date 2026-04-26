@@ -19,6 +19,7 @@
     <nav class="tabs">
       <button class="tab active" data-tab="today">Hoy</button>
       <button class="tab" data-tab="week">Semana</button>
+      <button class="tab" data-tab="capture">Capture</button>
       <button class="tab" data-tab="notes">Notas</button>
     </nav>
 
@@ -28,7 +29,6 @@
         <div class="today-date" id="today-date">Hoy</div>
         <div class="today-subtitle" id="today-subtitle"></div>
       </div>
-
       <div class="hitos-card">
         <div class="hitos-header">
           <span class="hitos-label">Hitos de la semana</span>
@@ -36,7 +36,6 @@
         </div>
         <ul class="hitos-list" id="hitos-list"></ul>
       </div>
-
       <div class="task-section">
         <div class="section-header">
           <span class="section-title" style="color:#C0392B">Foco</span>
@@ -50,7 +49,6 @@
           <button class="btn-add" data-add="foco">Agregar</button>
         </div>
       </div>
-
       <div class="task-section">
         <div class="section-header">
           <span class="section-title" style="color:#6C63FF">Operativas</span>
@@ -66,46 +64,71 @@
       </div>
     </section>
 
-    <!-- SEMANA -->
+    <!-- SEMANA — scrollable -->
     <section class="view" id="view-week">
-      <div class="week-header-row">
-        <div class="week-title" id="week-title">Esta semana</div>
+      <div class="day-scroll-wrap">
+        <div class="day-scroll-strip" id="day-scroll-strip"></div>
       </div>
-
-      <div class="week-strip" id="week-strip"></div>
-
-      <div class="week-progress-section" id="week-progress"></div>
-
       <div class="week-day-section">
         <div class="week-day-label-row">
-          <div class="week-day-name" id="week-day-name">Lunes</div>
-          <div class="week-day-stats" id="week-day-stats"></div>
+          <div class="week-day-name" id="scroll-day-label">Hoy</div>
+          <div class="week-day-stats" id="scroll-day-stats"></div>
         </div>
-
         <div class="task-section">
           <div class="section-header">
             <span class="section-title" style="color:#C0392B">Foco</span>
-            <span class="section-pct" id="week-pct-foco">0%</span>
+            <span class="section-pct" id="scroll-pct-foco">0%</span>
           </div>
-          <div class="progress-bar"><div class="progress-fill" id="week-bar-foco" style="width:0%;background:#C0392B"></div></div>
-          <div class="task-list" id="week-list-foco"></div>
+          <div class="progress-bar"><div class="progress-fill" id="scroll-bar-foco" style="width:0%;background:#C0392B"></div></div>
+          <div class="task-list" id="scroll-list-foco"></div>
           <div class="add-row">
-            <input type="text" id="week-add-foco" placeholder="Agregar tarea de foco...">
-            <button class="btn-add" data-week-add="foco">Agregar</button>
+            <input type="text" id="scroll-add-foco" placeholder="Agregar tarea de foco...">
+            <button class="btn-add" data-scroll-add="foco">Agregar</button>
           </div>
         </div>
-
         <div class="task-section">
           <div class="section-header">
             <span class="section-title" style="color:#6C63FF">Operativas</span>
-            <span class="section-pct" id="week-pct-ops">0%</span>
+            <span class="section-pct" id="scroll-pct-ops">0%</span>
           </div>
-          <div class="progress-bar"><div class="progress-fill" id="week-bar-ops" style="width:0%;background:#6C63FF"></div></div>
-          <div class="task-list" id="week-list-ops"></div>
+          <div class="progress-bar"><div class="progress-fill" id="scroll-bar-ops" style="width:0%;background:#6C63FF"></div></div>
+          <div class="task-list" id="scroll-list-ops"></div>
           <div class="add-row">
-            <input type="text" id="week-add-ops" placeholder="Agregar tarea operativa...">
-            <button class="btn-add" data-week-add="ops">Agregar</button>
+            <input type="text" id="scroll-add-ops" placeholder="Agregar tarea operativa...">
+            <button class="btn-add" data-scroll-add="ops">Agregar</button>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- QUICK CAPTURE -->
+    <section class="view" id="view-capture">
+      <div class="capture-header">
+        <div class="capture-title">Quick Capture</div>
+        <div class="capture-subtitle">tus ideas, para siempre</div>
+      </div>
+      <div class="task-section">
+        <div class="section-header">
+          <span class="section-title" style="color:#C0392B">💼 Trabajo</span>
+          <span class="section-pct" id="qc-pct-trabajo">0%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="qc-bar-trabajo" style="width:0%;background:#C0392B"></div></div>
+        <div class="task-list" id="qc-list-trabajo"></div>
+        <div class="add-row">
+          <input type="text" id="qc-add-trabajo" placeholder="Agregar a Trabajo...">
+          <button class="btn-add" data-qc-add="trabajo">Agregar</button>
+        </div>
+      </div>
+      <div class="task-section">
+        <div class="section-header">
+          <span class="section-title" style="color:#6C63FF">🌱 Vida personal</span>
+          <span class="section-pct" id="qc-pct-vida">0%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="qc-bar-vida" style="width:0%;background:#6C63FF"></div></div>
+        <div class="task-list" id="qc-list-vida"></div>
+        <div class="add-row">
+          <input type="text" id="qc-add-vida" placeholder="Agregar a Vida personal...">
+          <button class="btn-add" data-qc-add="vida">Agregar</button>
         </div>
       </div>
     </section>
@@ -140,7 +163,6 @@
       <button class="undo-btn" id="undo-btn">Deshacer</button>
     </div>
   </div>
-
   <script src="app.js"></script>
 </body>
 </html>
