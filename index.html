@@ -19,6 +19,7 @@
     <nav class="tabs">
       <button class="tab active" data-tab="today">Hoy</button>
       <button class="tab" data-tab="week">Semana</button>
+      <button class="tab" data-tab="pending">Pendientes</button>
       <button class="tab" data-tab="capture">Capture</button>
       <button class="tab" data-tab="notes">Notas</button>
     </nav>
@@ -28,6 +29,12 @@
       <div class="today-header">
         <div class="today-date" id="today-date">Hoy</div>
         <div class="today-subtitle" id="today-subtitle"></div>
+      </div>
+      <div class="tag-filter-bar" id="tag-filter-bar">
+        <button class="tag-filter active" data-tag="">Todas</button>
+        <button class="tag-filter" data-tag="Alta">🔴 Alta</button>
+        <button class="tag-filter" data-tag="Media">🟡 Media</button>
+        <button class="tag-filter" data-tag="Baja">🟢 Baja</button>
       </div>
       <div class="hitos-card">
         <div class="hitos-header">
@@ -64,7 +71,7 @@
       </div>
     </section>
 
-    <!-- SEMANA — scrollable -->
+    <!-- SEMANA -->
     <section class="view" id="view-week">
       <div class="day-scroll-wrap">
         <div class="day-scroll-strip" id="day-scroll-strip"></div>
@@ -101,34 +108,56 @@
       </div>
     </section>
 
+    <!-- PENDIENTES -->
+    <section class="view" id="view-pending">
+      <div class="today-header">
+        <div class="today-date">Pendientes</div>
+        <div class="today-subtitle">tareas sin completar de los últimos 7 días</div>
+      </div>
+      <div class="task-list" id="pending-list"></div>
+      <div id="pending-empty" style="display:none;text-align:center;padding:40px 20px;color:var(--text-tertiary);font-size:14px;">🎉 Sin pendientes. ¡Todo al día!</div>
+    </section>
+
     <!-- QUICK CAPTURE -->
     <section class="view" id="view-capture">
       <div class="capture-header">
         <div class="capture-title">Quick Capture</div>
-        <div class="capture-subtitle">tus ideas, para siempre</div>
+        <div class="capture-subtitle">tus ideas, siempre a mano</div>
       </div>
       <div class="task-section">
         <div class="section-header">
-          <span class="section-title" style="color:#C0392B">💼 Trabajo</span>
+          <span class="section-title" style="color:#C0392B">💼 Ecom&Roll</span>
           <span class="section-pct" id="qc-pct-trabajo">0%</span>
         </div>
         <div class="progress-bar"><div class="progress-fill" id="qc-bar-trabajo" style="width:0%;background:#C0392B"></div></div>
         <div class="task-list" id="qc-list-trabajo"></div>
         <div class="add-row">
-          <input type="text" id="qc-add-trabajo" placeholder="Agregar a Trabajo...">
+          <input type="text" id="qc-add-trabajo" placeholder="Agregar a Ecom&Roll...">
           <button class="btn-add" data-qc-add="trabajo">Agregar</button>
         </div>
       </div>
       <div class="task-section">
         <div class="section-header">
-          <span class="section-title" style="color:#6C63FF">🌱 Vida personal</span>
+          <span class="section-title" style="color:#6C63FF">🌱 Vida Personal</span>
           <span class="section-pct" id="qc-pct-vida">0%</span>
         </div>
         <div class="progress-bar"><div class="progress-fill" id="qc-bar-vida" style="width:0%;background:#6C63FF"></div></div>
         <div class="task-list" id="qc-list-vida"></div>
         <div class="add-row">
-          <input type="text" id="qc-add-vida" placeholder="Agregar a Vida personal...">
+          <input type="text" id="qc-add-vida" placeholder="Agregar a Vida Personal...">
           <button class="btn-add" data-qc-add="vida">Agregar</button>
+        </div>
+      </div>
+      <div class="task-section">
+        <div class="section-header">
+          <span class="section-title" style="color:#1DB954">🚗 Car Wash MVP</span>
+          <span class="section-pct" id="qc-pct-carwash">0%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="qc-bar-carwash" style="width:0%;background:#1DB954"></div></div>
+        <div class="task-list" id="qc-list-carwash"></div>
+        <div class="add-row">
+          <input type="text" id="qc-add-carwash" placeholder="Agregar a Car Wash MVP...">
+          <button class="btn-add" data-qc-add="carwash">Agregar</button>
         </div>
       </div>
     </section>
