@@ -117,42 +117,43 @@
   function showLoginScreen(){
     document.querySelectorAll('.tabs,.view').forEach(el=>el.style.display='none');
     let el=document.getElementById('login-screen');
-    if(!el){el=document.createElement('div');el.id='login-screen';el.innerHTML='<div style="font-size:48px;margin-bottom:16px;">🎯</div><div style="font-size:28px;font-weight:700;margin-bottom:6px;letter-spacing:-0.04em;">FocusWeek</div><div style="font-size:14px;color:var(--text-tertiary);margin-bottom:40px;">Tu semana, organizada.</div><input id="login-email" type="email" placeholder="tu@email.com"><button id="login-btn">Entrar con email</button><div id="login-msg"></div>';document.querySelector('.app').appendChild(el);}
+    if(!el){el=document.createElement('div');el.id='login-screen';document.querySelector('.app').appendChild(el);}
     el.style.display='block';
-    document.getElementById('login-btn').onclick=async()=>{
-      const email=document.getElementById('login-email').value.trim();const msg=document.getElementById('login-msg');
-      if(!email){msg.textContent='Ingresá tu email';msg.style.display='block';return;}
-      const btn=document.getElementById('login-btn');btn.disabled=true;btn.textContent='Enviando...';
-      const{error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:'https://focus-week-nine.vercel.app'}});
-      if(error){msg.innerHTML='Error: '+error.message;msg.style.display='block';btn.disabled=false;btn.textContent='Entrar con email';}
-      else{
-        // FIX 2: Session polling + manual check button for iOS PWA
-        msg.innerHTML='✅ Revisá tu email <b>'+email+'</b><br>Después de clickear el link, volvé a la app.<br><br><button id="check-session-btn" style="padding:10px 20px;border:0.5px solid var(--border-strong);border-radius:10px;background:var(--surface2);color:var(--text);font-size:13px;font-family:var(--font);cursor:pointer;">Ya hice click en el link ↩</button>';
-        msg.style.display='block';btn.textContent='Link enviado';
-        // Auto-poll each 2s for up to 5 min
-        const poll=setInterval(async()=>{
-          const cd=getSessionCookie();
-          if(cd){clearInterval(poll);try{const{data:{session:rs}}=await sb.auth.setSession(cd);if(rs?.user){currentUser=rs.user;saveSessionCookie(rs);showApp();}}catch{clearSessionCookie();}}
-        },2000);
-        const stopPoll=setTimeout(()=>clearInterval(poll),5*60*1000);
-        setTimeout(()=>{
-          const btn2=document.getElementById('check-session-btn');
-          if(!btn2)return;
-          btn2.onclick=async()=>{
-            clearInterval(poll);clearTimeout(stopPoll);
-            btn2.textContent='Verificando...';btn2.disabled=true;
-            const cd=getSessionCookie();
-            if(cd){try{const{data:{session:rs}}=await sb.auth.setSession(cd);if(rs?.user){currentUser=rs.user;saveSessionCookie(rs);showApp();return;}}catch{clearSessionCookie();}}
-            const{data:{session:s2}}=await sb.auth.getSession();
-            if(s2?.user){currentUser=s2.user;saveSessionCookie(s2);showApp();}
-            else{btn2.textContent='No se encontró sesión. Intentá de nuevo.';btn2.disabled=false;}
-          };
-        },200);
-      }
-    };
-    document.getElementById('login-email').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('login-btn').click();});
-  }
+    let loginEmail='';
 
+    const showEmailStep=()=>{
+      el.innerHTML='<div style="font-size:48px;margin-bottom:16px;">🎯</div><div style="font-size:28px;font-weight:700;margin-bottom:6px;letter-spacing:-0.04em;">FocusWeek</div><div style="font-size:14px;color:var(--text-tertiary);margin-bottom:40px;">Tu semana, organizada.</div><input id="login-email" type="email" placeholder="tu@email.com"><button id="login-btn">Entrar con email</button><div id="login-msg"></div>';
+      document.getElementById('login-btn').onclick=async()=>{
+        const email=document.getElementById('login-email').value.trim();const msg=document.getElementById('login-msg');
+        if(!email){msg.textContent='Ingresá tu email';msg.style.display='block';return;}
+        const btn=document.getElementById('login-btn');btn.disabled=true;btn.textContent='Enviando...';
+        const{error}=await sb.auth.signInWithOtp({email,options:{shouldCreateUser:true}});
+        if(error){msg.innerHTML='Error: '+error.message;msg.style.display='block';btn.disabled=false;btn.textContent='Entrar con email';}
+        else{loginEmail=email;showCodeStep(email);}
+      };
+      document.getElementById('login-email').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('login-btn').click();});
+      if(loginEmail)document.getElementById('login-email').value=loginEmail;
+    };
+
+    const showCodeStep=(email)=>{
+      el.innerHTML='<div style="font-size:40px;margin-bottom:12px;">📬</div><div style="font-size:22px;font-weight:700;margin-bottom:6px;letter-spacing:-0.02em;">Revisá tu email</div><div style="font-size:14px;color:var(--text-tertiary);margin-bottom:6px;">Código de 6 dígitos enviado a</div><div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:28px;">'+email+'</div><input id="otp-input" type="number" inputmode="numeric" placeholder="123456" style="width:100%;max-width:200px;padding:16px;font-size:28px;font-family:var(--mono);text-align:center;background:var(--surface);border:0.5px solid var(--border-strong);border-radius:12px;color:var(--text);outline:none;display:block;margin:0 auto 12px;letter-spacing:0.2em;"><button id="verify-btn" style="padding:13px 32px;border:none;border-radius:12px;background:var(--accent);color:white;font-size:15px;font-family:var(--font);cursor:pointer;font-weight:600;display:block;margin:0 auto 10px;">Verificar código</button><button id="back-btn" style="background:none;border:none;color:var(--text-tertiary);font-size:13px;font-family:var(--font);cursor:pointer;display:block;margin:0 auto;">← Cambiar email</button><div id="otp-msg" style="margin-top:16px;font-size:13px;color:var(--text-secondary);display:none;text-align:center;max-width:280px;margin-left:auto;margin-right:auto;line-height:1.5;"></div>';
+      setTimeout(()=>document.getElementById('otp-input')?.focus(),100);
+      document.getElementById('verify-btn').onclick=async()=>{
+        const code=(document.getElementById('otp-input').value||'').trim();const msg=document.getElementById('otp-msg');
+        if(!code||code.length<6){msg.textContent='Ingresá el código de 6 dígitos';msg.style.display='block';return;}
+        const btn=document.getElementById('verify-btn');btn.disabled=true;btn.textContent='Verificando...';
+        const{data,error}=await sb.auth.verifyOtp({email,token:code,type:'email'});
+        if(error){msg.innerHTML='❌ Código incorrecto o expirado.<br>Pedí un nuevo código.';msg.style.display='block';btn.disabled=false;btn.textContent='Verificar código';}
+        else if(data?.session?.user){currentUser=data.session.user;saveSessionCookie(data.session);showApp();}
+      };
+      document.getElementById('otp-input').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('verify-btn').click();});
+      document.getElementById('otp-input').addEventListener('input',e=>{if(e.target.value.length>=6)document.getElementById('verify-btn').click();});
+      document.getElementById('back-btn').onclick=()=>showEmailStep();
+    };
+
+    showEmailStep();
+  }
+  
   function showApp(){
     const el=document.getElementById('login-screen');if(el)el.style.display='none';
     document.querySelector('.tabs').style.display='';
