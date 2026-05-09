@@ -87,6 +87,7 @@ html, body { background: var(--bg); color: var(--text); font-family: var(--font)
   overflow: hidden;
   border-radius: 10px;
   margin-bottom: 6px;
+  background: var(--bg);
 }
 
 /* TASK INNER */
