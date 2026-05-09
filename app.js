@@ -22,7 +22,7 @@
   let dragState = null, dropTarget = null;
   let undoQueue = [], undoTimer = null;
   let activeTab = 'today';
-  let td = null, tdClone = null; // touch drag state
+  let td = null, tdClone = null;
 
   function todayStr() { return new Date().toISOString().slice(0, 10); }
   function dateFromOffset(o) { const d = new Date(); d.setDate(d.getDate() + o); return d.toISOString().slice(0, 10); }
@@ -125,7 +125,30 @@
       const btn=document.getElementById('login-btn');btn.disabled=true;btn.textContent='Enviando...';
       const{error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:'https://focus-week-nine.vercel.app'}});
       if(error){msg.innerHTML='Error: '+error.message;msg.style.display='block';btn.disabled=false;btn.textContent='Entrar con email';}
-      else{msg.innerHTML='✅ Revisá tu email <b>'+email+'</b><br>Después de clickear el link, volvé a la app desde tu pantalla de inicio.';msg.style.display='block';btn.textContent='Link enviado';}
+      else{
+        // FIX 2: Session polling + manual check button for iOS PWA
+        msg.innerHTML='✅ Revisá tu email <b>'+email+'</b><br>Después de clickear el link, volvé a la app.<br><br><button id="check-session-btn" style="padding:10px 20px;border:0.5px solid var(--border-strong);border-radius:10px;background:var(--surface2);color:var(--text);font-size:13px;font-family:var(--font);cursor:pointer;">Ya hice click en el link ↩</button>';
+        msg.style.display='block';btn.textContent='Link enviado';
+        // Auto-poll each 2s for up to 5 min
+        const poll=setInterval(async()=>{
+          const cd=getSessionCookie();
+          if(cd){clearInterval(poll);try{const{data:{session:rs}}=await sb.auth.setSession(cd);if(rs?.user){currentUser=rs.user;saveSessionCookie(rs);showApp();}}catch{clearSessionCookie();}}
+        },2000);
+        const stopPoll=setTimeout(()=>clearInterval(poll),5*60*1000);
+        setTimeout(()=>{
+          const btn2=document.getElementById('check-session-btn');
+          if(!btn2)return;
+          btn2.onclick=async()=>{
+            clearInterval(poll);clearTimeout(stopPoll);
+            btn2.textContent='Verificando...';btn2.disabled=true;
+            const cd=getSessionCookie();
+            if(cd){try{const{data:{session:rs}}=await sb.auth.setSession(cd);if(rs?.user){currentUser=rs.user;saveSessionCookie(rs);showApp();return;}}catch{clearSessionCookie();}}
+            const{data:{session:s2}}=await sb.auth.getSession();
+            if(s2?.user){currentUser=s2.user;saveSessionCookie(s2);showApp();}
+            else{btn2.textContent='No se encontró sesión. Intentá de nuevo.';btn2.disabled=false;}
+          };
+        },200);
+      }
     };
     document.getElementById('login-email').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('login-btn').click();});
   }
@@ -175,6 +198,7 @@
     if(!state.hitos.length)list.innerHTML='<li class="hito" style="color:var(--text-tertiary);font-style:italic;">Sin hitos. Clickeá Editar.</li>';
   }
 
+  // FIX 4: renderPending con swipe-to-delete
   function renderPending(){
     const list=document.getElementById('pending-list'),empty=document.getElementById('pending-empty');if(!list)return;
     list.innerHTML='';
@@ -192,16 +216,24 @@
       const label=document.createElement('div');label.className='pending-date-label';
       label.textContent=DAYS_ES[d.getDay()]+' '+d.getDate()+' de '+MONTHS[d.getMonth()];list.appendChild(label);
       tasks.forEach(t=>{
-        const row=document.createElement('div');row.className='pending-task';
+        // Swipe wrapper
+        const rowWrap=document.createElement('div');
+        rowWrap.style.cssText='position:relative;overflow:hidden;border-radius:10px;margin-bottom:8px;background:var(--bg);';
+        const rowDelBg=document.createElement('div');
+        rowDelBg.style.cssText='position:absolute;right:0;top:0;bottom:0;width:80px;background:#e74c3c;display:flex;align-items:center;justify-content:center;font-size:20px;border-radius:0 10px 10px 0;';
+        rowDelBg.textContent='🗑️';
+        rowWrap.appendChild(rowDelBg);
+
+        const row=document.createElement('div');
+        row.className='pending-task';
+        row.style.cssText='position:relative;z-index:1;background:var(--surface);border-radius:10px;margin-bottom:0;transition:transform 0.2s;';
         const cb=document.createElement('div');cb.className='cb';
         const complete=async()=>{
-          // Show check animation FIRST
           cb.innerHTML='<svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2.5 6L5 8.5L9.5 3.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
           cb.style.background='var(--green)';cb.style.borderColor='var(--green)';
           row.style.opacity='0.5';
           const grp=(state.dayTasks[dateStr]?.foco||[]).find(x=>x.id===t.id)?'foco':'ops';
           t.done=true;await saveTask(t,grp,dateStr);
-          // Then fade out and re-render
           setTimeout(()=>{row.style.opacity='0';setTimeout(()=>renderPending(),350);},450);
         };
         cb.addEventListener('click',e=>{e.stopPropagation();complete();});
@@ -209,7 +241,30 @@
         row.appendChild(cb);
         const c=document.createElement('div');c.className='task-content';
         c.innerHTML='<div class="task-text">'+t.text+'</div>'+(t.tag?'<span class="tag-badge '+t.tag.toLowerCase()+'">'+t.tag+'</span>':'');
-        row.appendChild(c);list.appendChild(row);
+        row.appendChild(c);
+
+        // Swipe to delete
+        let pSwX=0,pSwDx=0;
+        row.addEventListener('touchstart',e=>{pSwX=e.touches[0].clientX;},{passive:true});
+        row.addEventListener('touchmove',e=>{
+          pSwDx=e.touches[0].clientX-pSwX;
+          if(pSwDx<0){row.style.transition='none';row.style.transform='translateX('+Math.max(-88,pSwDx)+'px)';}
+        },{passive:true});
+        row.addEventListener('touchend',async()=>{
+          row.style.transition='transform 0.2s';
+          if(pSwDx<-70){
+            row.style.transform='translateX(-110%)';
+            setTimeout(async()=>{
+              const grp2=(state.dayTasks[dateStr]?.foco||[]).find(x=>x.id===t.id)?'foco':'ops';
+              const arr=getTasksArray(grp2,dateStr);const idx2=arr.findIndex(x=>x.id===t.id);
+              if(idx2>=0){arr.splice(idx2,1);await deleteTask(t.id);showUndo(t.text,{...t},grp2,dateStr);}
+              renderPending();
+            },200);return;
+          }
+          row.style.transform='';pSwDx=0;
+        },{passive:true});
+
+        rowWrap.appendChild(row);list.appendChild(rowWrap);
       });
     });
   }
@@ -261,27 +316,21 @@
   function makeTaskEl(t, idx, group, dayKey){
     const isEdit=editId===t.id,isNoteEdit=editNoteId===t.id;
 
-    // OUTER WRAPPER — contains delete bg + task (for swipe reveal)
+    // FIX 1: Removed doneBg entirely. Outer wrapper only has delBg.
     const wrap=document.createElement('div');
     wrap.className='task-wrap';
+    wrap.style.background='var(--bg)'; // Prevents see-through effect
 
     // Delete background (reveals on left swipe)
     const delBg=document.createElement('div');
-    delBg.style.cssText='position:absolute;right:0;top:0;bottom:0;width:100%;display:flex;align-items:center;justify-content:flex-end;padding-right:20px;font-size:22px;border-radius:10px;pointer-events:none;';
+    delBg.style.cssText='position:absolute;right:0;top:0;bottom:0;width:100%;display:flex;align-items:center;justify-content:flex-end;padding-right:20px;font-size:22px;border-radius:10px;pointer-events:none;opacity:0;';
     delBg.textContent='🗑️';
     wrap.appendChild(delBg);
 
-    // Done background (reveals on right swipe)
-    const doneBg=document.createElement('div');
-    doneBg.style.cssText='position:absolute;left:0;top:0;bottom:0;width:100%;display:flex;align-items:center;justify-content:flex-start;padding-left:20px;font-size:22px;border-radius:10px;pointer-events:none;';
-    doneBg.textContent=t.done?'↩️':'✅';
-    wrap.appendChild(doneBg);
-
-    // INNER TASK (the actual visible task)
+    // INNER TASK
     const div=document.createElement('div');
     div.className='task'+(t.done?' done':'')+(isEdit||isNoteEdit?' editing':'');
 
-    // Desktop drag handlers
     div.addEventListener('dragover',e=>{e.preventDefault();if(!dragState)return;clearIndicators();const r=wrap.getBoundingClientRect();const pos=e.clientY<r.top+r.height/2?idx:idx+1;const ind=wrap.parentElement?.querySelector('.drop-indicator[data-pos="'+pos+'"]');if(ind)ind.classList.add('visible');dropTarget={group,pos,dayKey};});
     div.addEventListener('drop',e=>handleDrop(e,group,dayKey));
 
@@ -292,7 +341,6 @@
     grip.addEventListener('dragstart',e=>{dragState={group,idx,dayKey};div.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setDragImage(div,0,0);});
     grip.addEventListener('dragend',()=>{div.classList.remove('dragging');clearIndicators();dragState=null;});
 
-    // Touch drag — long press on grip
     let lpTimer=null;
     grip.addEventListener('touchstart',e=>{
       e.stopPropagation();
@@ -311,7 +359,7 @@
     grip.addEventListener('touchmove',()=>clearTimeout(lpTimer));
     div.appendChild(grip);
 
-    // CHECKBOX — fixed for mobile (touchend fires immediately)
+    // CHECKBOX
     const cb=document.createElement('div');cb.className='cb';
     if(t.done)cb.innerHTML='<svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2.5 6L5 8.5L9.5 3.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
     const toggleDone=async()=>{t.done=!t.done;await saveTask(t,group,dayKey);render();};
@@ -367,7 +415,7 @@
     });
     actions.appendChild(editBtn);actions.appendChild(delBtn);div.appendChild(actions);
 
-    // SWIPE GESTURES on div
+    // FIX 1: SWIPE — removed doneBg references, swipe right just toggles done
     let swX=0,swDx=0;
     div.addEventListener('touchstart',e=>{if(td)return;swX=e.touches[0].clientX;swDx=0;},{passive:true});
     div.addEventListener('touchmove',e=>{
@@ -379,10 +427,10 @@
         const p=Math.min(1,Math.abs(swDx)/80);
         if(swDx<-8){
           wrap.style.background='rgba(231,76,60,'+p*0.95+')';
-          delBg.style.opacity=String(p);doneBg.style.opacity='0';
-        } else if(swDx>8){
+          delBg.style.opacity=String(p);
+        } else {
           wrap.style.background='rgba(29,185,84,'+p*0.8+')';
-          doneBg.style.opacity=String(p);delBg.style.opacity='0';
+          delBg.style.opacity='0';
         }
       }
     },{passive:true});
@@ -390,14 +438,14 @@
       if(td)return;
       div.style.transition='transform 0.2s';
       if(swDx>55){
-        div.style.transform='';wrap.style.background='';delBg.style.opacity='0';doneBg.style.opacity='0';
+        div.style.transform='';wrap.style.background='';delBg.style.opacity='0';
         t.done=!t.done;await saveTask(t,group,dayKey);render();
       } else if(swDx<-75){
         div.style.transform='translateX(-110%)';
         setTimeout(async()=>{const copy={...t};const arr=getTasksArray(group,dayKey);arr.splice(idx,1);await deleteTask(t.id);showUndo(t.text,copy,group,dayKey);render();},200);
         return;
       } else {
-        div.style.transform='';wrap.style.background='';delBg.style.opacity='0';doneBg.style.opacity='0';
+        div.style.transform='';wrap.style.background='';delBg.style.opacity='0';
       }
       swDx=0;
     },{passive:true});
@@ -440,6 +488,7 @@
     if(bar&&txt){txt.textContent='"'+(label.length>28?label.slice(0,28)+'…':label)+'" eliminada';bar.style.display='flex';undoTimer=setTimeout(()=>{bar.style.display='none';undoQueue=[];},5000);}
   }
 
+  // FIX 3: Note undo after swipe delete
   function renderNotes(){
     const list=document.getElementById('notes-list');if(!list)return;list.innerHTML='';
     if(!state.notes.length){list.innerHTML='<div style="font-size:13px;color:var(--text-tertiary);padding:20px 0;text-align:center;">Sin notas todavía.</div>';return;}
@@ -455,7 +504,31 @@
       card.addEventListener('touchmove',e=>{swDx=e.touches[0].clientX-swX;if(swDx<0){card.style.transition='none';card.style.transform='translateX('+Math.max(-90,swDx)+'px)';}},{passive:true});
       card.addEventListener('touchend',async()=>{
         card.style.transition='transform 0.2s';
-        if(swDx<-70){card.style.transform='translateX(-110%)';setTimeout(async()=>{await sb.from('notes').delete().eq('id',n.id);state.notes=state.notes.filter(x=>x.id!==n.id);renderNotes();},200);return;}
+        if(swDx<-70){
+          card.style.transform='translateX(-110%)';
+          setTimeout(async()=>{
+            await sb.from('notes').delete().eq('id',n.id);
+            const deletedNote={...n};
+            state.notes=state.notes.filter(x=>x.id!==n.id);
+            // Show undo for note
+            clearTimeout(undoTimer);
+            const bar=document.getElementById('undo-bar'),txt=document.getElementById('undo-text');
+            if(bar&&txt){
+              txt.textContent='"'+(deletedNote.title||'Sin título').slice(0,28)+'" eliminada';
+              bar.style.display='flex';
+              undoTimer=setTimeout(()=>{bar.style.display='none';},5000);
+              document.getElementById('undo-btn').onclick=async()=>{
+                const{data}=await sb.from('notes').insert({user_id:currentUser.id,title:deletedNote.title||'',body:deletedNote.body||''}).select().single();
+                if(data)state.notes.unshift({id:data.id,title:data.title,body:data.body,createdAt:data.created_at});
+                clearTimeout(undoTimer);bar.style.display='none';
+                // Restore task undo behavior
+                document.getElementById('undo-btn').onclick=taskUndoHandler;
+                renderNotes();
+              };
+            }
+            renderNotes();
+          },200);return;
+        }
         card.style.transform='';swDx=0;
       },{passive:true});
       card.addEventListener('click',()=>{if(Math.abs(swDx)<5)openNoteModal(n);});
@@ -513,7 +586,16 @@
     inp.value='';await saveTask(task,group,dayKey);render();
   }
 
+  // FIX 3: Task undo handler reference
+  function taskUndoHandler(){
+    // handled via onclick in initEvents
+  }
+
   function initEvents(){
+    // FIX 5: Logo click → Hoy + refresh
+    const logoEl=document.querySelector('.logo');
+    if(logoEl){logoEl.style.cursor='pointer';logoEl.addEventListener('click',()=>{switchTab('today');loadFromSupabase();});}
+
     document.querySelectorAll('.tab').forEach(btn=>btn.addEventListener('click',()=>{if(editId)commitEdit();if(editNoteId)commitNoteEdit();switchTab(btn.dataset.tab);}));
     document.querySelectorAll('.tag-filter').forEach(btn=>{btn.addEventListener('click',()=>{document.querySelectorAll('.tag-filter').forEach(b=>b.classList.remove('active'));btn.classList.add('active');activeTagFilter=btn.dataset.tag;renderToday();});});
     document.querySelectorAll('[data-add]').forEach(btn=>btn.addEventListener('click',()=>addTask(btn.dataset.add,todayStr())));
@@ -524,20 +606,24 @@
     QC_GROUPS.forEach(g=>{const inp=document.getElementById('qc-add-'+g);if(inp)inp.addEventListener('keydown',e=>{if(e.key==='Enter')addTask(g,'quick-capture');});});
     document.getElementById('edit-hitos')?.addEventListener('click',openHitosModal);
     document.getElementById('new-note')?.addEventListener('click',()=>openNoteModal(null));
-    document.getElementById('undo-btn')?.addEventListener('click',async()=>{
+
+    // FIX 3: Task undo button (default behavior, can be overridden by note undo)
+    const undoBtnHandler=async()=>{
       if(!undoQueue.length)return;const entry=undoQueue.pop();
       if(entry.taskCopy){const{data}=await sb.from('tasks').insert({user_id:currentUser.id,week_key:entry.dayKey,day_index:0,group_name:entry.group,text:entry.taskCopy.text,note:entry.taskCopy.note||'',done:entry.taskCopy.done,tag:entry.taskCopy.tag||'',position:0}).select().single();
         if(data){const nt={id:data.id,text:data.text,note:data.note||'',done:data.done,tag:data.tag||''};if(entry.dayKey==='quick-capture'){if(!state.quickCapture[entry.group])state.quickCapture[entry.group]=[];state.quickCapture[entry.group].push(nt);}else getDayTasks(entry.dayKey)[entry.group].push(nt);}
       }
       clearTimeout(undoTimer);document.getElementById('undo-bar').style.display='none';undoQueue=[];render();
-    });
+    };
+    document.getElementById('undo-btn').onclick=undoBtnHandler;
+
     document.addEventListener('mousedown',e=>{
       if(editId){const inp=document.getElementById('ei-'+editId);if(inp&&inp.contains(e.target))return;if(e.target.closest('.tag-picker'))return;commitEdit();}
       if(editNoteId){const inp=document.getElementById('ni-'+editNoteId);if(inp&&inp.contains(e.target))return;commitNoteEdit();}
     });
     document.getElementById('modal')?.addEventListener('click',e=>{if(e.target===document.getElementById('modal'))document.getElementById('modal').style.display='none';});
 
-    // === TOUCH DRAG — document-level handlers ===
+    // TOUCH DRAG
     document.addEventListener('touchmove',e=>{
       if(!td||!tdClone)return;
       e.preventDefault();
