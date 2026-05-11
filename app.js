@@ -265,7 +265,19 @@
           row.style.transform='';pSwDx=0;
         },{passive:true});
 
-        rowWrap.appendChild(row);list.appendChild(rowWrap);
+        const pDelBtn=document.createElement('button');
+pDelBtn.className='ib';pDelBtn.textContent='🗑️';
+pDelBtn.style.cssText='opacity:0.5;flex-shrink:0;transition:opacity 0.15s;';
+pDelBtn.addEventListener('mouseenter',()=>pDelBtn.style.opacity='1');
+pDelBtn.addEventListener('mouseleave',()=>pDelBtn.style.opacity='0.5');
+pDelBtn.addEventListener('click',async()=>{
+  const grp2=(state.dayTasks[dateStr]?.foco||[]).find(x=>x.id===t.id)?'foco':'ops';
+  const arr=getTasksArray(grp2,dateStr);const idx2=arr.findIndex(x=>x.id===t.id);
+  if(idx2>=0){arr.splice(idx2,1);await deleteTask(t.id);showUndo(t.text,{...t},grp2,dateStr);}
+  renderPending();
+});
+row.appendChild(pDelBtn);
+rowWrap.appendChild(row);list.appendChild(rowWrap);
       });
     });
   }
@@ -533,6 +545,24 @@
         card.style.transform='';swDx=0;
       },{passive:true});
       card.addEventListener('click',()=>{if(Math.abs(swDx)<5)openNoteModal(n);});
+const nDelBtn=document.createElement('button');
+nDelBtn.className='ib';nDelBtn.textContent='🗑️';
+nDelBtn.style.cssText='position:absolute;top:10px;right:10px;opacity:0;transition:opacity 0.15s;z-index:2;';
+card.style.position='relative';
+card.addEventListener('mouseenter',()=>nDelBtn.style.opacity='1');
+card.addEventListener('mouseleave',()=>nDelBtn.style.opacity='0');
+nDelBtn.addEventListener('click',async e=>{
+  e.stopPropagation();
+  await sb.from('notes').delete().eq('id',n.id);
+  const deletedNote={...n};state.notes=state.notes.filter(x=>x.id!==n.id);
+  clearTimeout(undoTimer);
+  const bar=document.getElementById('undo-bar'),txt=document.getElementById('undo-text');
+  if(bar&&txt){txt.textContent='"'+(deletedNote.title||'Sin título').slice(0,28)+'" eliminada';bar.style.display='flex';undoTimer=setTimeout(()=>{bar.style.display='none';},5000);
+    document.getElementById('undo-btn').onclick=async()=>{const{data}=await sb.from('notes').insert({user_id:currentUser.id,title:deletedNote.title||'',body:deletedNote.body||''}).select().single();if(data)state.notes.unshift({id:data.id,title:data.title,body:data.body,createdAt:data.created_at});clearTimeout(undoTimer);bar.style.display='none';renderNotes();};
+  }
+  renderNotes();
+});
+card.appendChild(nDelBtn);
       wrap.appendChild(delBg);wrap.appendChild(card);list.appendChild(wrap);
     });
   }
