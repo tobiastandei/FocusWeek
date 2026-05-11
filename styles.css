@@ -50,6 +50,8 @@ html, body { background: var(--bg); color: var(--text); font-family: var(--font)
 .tag-badge.alta { background: rgba(192,57,43,0.2); color: #e74c3c; }
 .tag-badge.media { background: rgba(241,196,15,0.2); color: #f39c12; }
 .tag-badge.baja { background: rgba(29,185,84,0.2); color: #1DB954; }
+.tag-badge.personal { background: rgba(52,152,219,0.2); color: #3498db; }
+.tag-option.selected.personal { background: rgba(52,152,219,0.2); border-color: #3498db; color: #3498db; }
 .tag-picker { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
 .tag-option { padding: 4px 10px; border-radius: 12px; border: 0.5px solid var(--border); background: var(--surface2); color: var(--text-secondary); font-size: 11px; font-family: var(--font); cursor: pointer; transition: all 0.15s; }
 .tag-option.selected.alta { background: rgba(192,57,43,0.2); border-color: #e74c3c; color: #e74c3c; }
