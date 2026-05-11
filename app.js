@@ -10,7 +10,7 @@
   const MONTHS = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
   const HITO_EMOJIS = ['🎯','📊','📱','🌐','⚡','🔥','💡','✅'];
   const DAYS_BACK = 15, DAYS_FORWARD = 30;
-  const TAGS = ['Alta','Media','Baja'];
+  const TAGS = ['Alta','Media','Baja','Personal'];
   const QC_GROUPS = ['trabajo','vida','carwash'];
 
   let currentUser = null;
@@ -376,7 +376,7 @@
       inp.addEventListener('click',e=>e.stopPropagation());
       content.appendChild(inp);
       const tp=document.createElement('div');tp.className='tag-picker';
-      const tagOpts=[{label:'Sin tag',val:'',cls:''},{label:'🔴 Alta',val:'Alta',cls:'alta'},{label:'🟡 Media',val:'Media',cls:'media'},{label:'🟢 Baja',val:'Baja',cls:'baja'}];
+      const tagOpts=[{label:'🔴 Alta',val:'Alta',cls:'alta'},{label:'🟡 Media',val:'Media',cls:'media'},{label:'🟢 Baja',val:'Baja',cls:'baja'},{label:'🔵 Personal',val:'Personal',cls:'personal'}];
       tagOpts.forEach(({label,val,cls})=>{
         const btn=document.createElement('button');btn.className='tag-option'+((t.tag===val)?' selected '+cls:'');btn.textContent=label;
         btn.addEventListener('click',e=>{e.stopPropagation();t.tag=val;tp.querySelectorAll('.tag-option').forEach(b=>b.className='tag-option');btn.className='tag-option selected '+cls;});
