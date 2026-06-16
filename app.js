@@ -100,6 +100,7 @@
     state.quickCapture={trabajo:[],vida:[],carwash:[]};
     (qc||[]).forEach(t=>{if(QC_GROUPS.includes(t.group_name))state.quickCapture[t.group_name].push({id:t.id,text:t.text,note:t.note||'',done:t.done,tag:t.tag||''});});
     state.notes=(n||[]).map(x=>({id:x.id,title:x.title,body:x.body,createdAt:x.created_at}));
+    applyNoteOrder();
     render();
     setTimeout(checkAutoWeekClose,500);
   }
@@ -391,7 +392,7 @@ rowWrap.appendChild(row);list.appendChild(rowWrap);
       const tagOpts=[{label:'🔴 Alta',val:'Alta',cls:'alta'},{label:'🟡 Media',val:'Media',cls:'media'},{label:'🟢 Baja',val:'Baja',cls:'baja'},{label:'🔵 Personal',val:'Personal',cls:'personal'}];
       tagOpts.forEach(({label,val,cls})=>{
         const btn=document.createElement('button');btn.className='tag-option'+((t.tag===val)?' selected '+cls:'');btn.textContent=label;
-        btn.addEventListener('click',e=>{e.stopPropagation();t.tag=val;tp.querySelectorAll('.tag-option').forEach(b=>b.className='tag-option');btn.className='tag-option selected '+cls;});
+        btn.addEventListener('click',e=>{e.stopPropagation();if(t.tag===val){t.tag='';tp.querySelectorAll('.tag-option').forEach(b=>b.className='tag-option');}else{t.tag=val;tp.querySelectorAll('.tag-option').forEach(b=>b.className='tag-option');btn.className='tag-option selected '+cls;}});
         tp.appendChild(btn);
       });
       content.appendChild(tp);
@@ -501,12 +502,22 @@ rowWrap.appendChild(row);list.appendChild(rowWrap);
     if(bar&&txt){txt.textContent='"'+(label.length>28?label.slice(0,28)+'…':label)+'" eliminada';bar.style.display='flex';undoTimer=setTimeout(()=>{bar.style.display='none';undoQueue=[];},5000);}
   }
 
+  function getNoteOrder(){try{return JSON.parse(localStorage.getItem('fw_note_order')||'[]');}catch{return [];}}
+  function saveNoteOrder(){localStorage.setItem('fw_note_order',JSON.stringify(state.notes.map(n=>n.id)));}
+  function applyNoteOrder(){const order=getNoteOrder();if(!order.length)return;state.notes.sort((a,b)=>{const ia=order.indexOf(a.id),ib=order.indexOf(b.id);if(ia===-1&&ib===-1)return 0;if(ia===-1)return 1;if(ib===-1)return -1;return ia-ib;});}
+
+  let noteDragIdx=null;
+
   // FIX 3: Note undo after swipe delete
   function renderNotes(){
     const list=document.getElementById('notes-list');if(!list)return;list.innerHTML='';
     if(!state.notes.length){list.innerHTML='<div style="font-size:13px;color:var(--text-tertiary);padding:20px 0;text-align:center;">Sin notas todavía.</div>';return;}
-    state.notes.forEach(n=>{
-      const wrap=document.createElement('div');wrap.className='note-card-wrap';
+    state.notes.forEach((n,idx)=>{
+      const wrap=document.createElement('div');wrap.className='note-card-wrap';wrap.dataset.idx=String(idx);wrap.draggable=true;
+      wrap.addEventListener('dragstart',e=>{noteDragIdx=idx;wrap.style.opacity='0.4';e.dataTransfer.effectAllowed='move';});
+      wrap.addEventListener('dragend',()=>{wrap.style.opacity='';document.querySelectorAll('.note-card-wrap').forEach(w=>w.classList.remove('drag-over'));});
+      wrap.addEventListener('dragover',e=>{e.preventDefault();document.querySelectorAll('.note-card-wrap').forEach(w=>w.classList.remove('drag-over'));wrap.classList.add('drag-over');});
+      wrap.addEventListener('drop',e=>{e.preventDefault();wrap.classList.remove('drag-over');if(noteDragIdx===null||noteDragIdx===idx)return;const item=state.notes.splice(noteDragIdx,1)[0];state.notes.splice(idx,0,item);noteDragIdx=null;saveNoteOrder();renderNotes();});
       const delBg=document.createElement('div');delBg.className='note-delete-bg';delBg.textContent='🗑️';
       const card=document.createElement('div');card.className='note-card';
       const date=new Date(n.createdAt);
@@ -575,7 +586,7 @@ card.appendChild(nDelBtn);
     document.getElementById('modal-save').onclick=async()=>{
       const tv=document.getElementById('note-title-input').value.trim(),bv=document.getElementById('note-body-input').value.trim();
       if(note){const nb=state.notes.find(x=>x.id===note.id);if(nb){nb.title=tv;nb.body=bv;}await sb.from('notes').update({title:tv,body:bv,updated_at:new Date().toISOString()}).eq('id',note.id);}
-      else{const{data}=await sb.from('notes').insert({user_id:currentUser.id,title:tv,body:bv}).select().single();if(data)state.notes.unshift({id:data.id,title:data.title,body:data.body,createdAt:data.created_at});}
+      else{const{data}=await sb.from('notes').insert({user_id:currentUser.id,title:tv,body:bv}).select().single();if(data){state.notes.unshift({id:data.id,title:data.title,body:data.body,createdAt:data.created_at});saveNoteOrder();}}
       modal.style.display='none';renderNotes();
     };
     const dc=()=>{modal.style.display='none';};document.getElementById('modal-cancel').onclick=dc;document.getElementById('modal-close').onclick=dc;
@@ -587,7 +598,13 @@ card.appendChild(nDelBtn);
     body.innerHTML='<div id="hito-edit-list"></div><button class="btn-ghost" id="add-hito-btn" style="margin-top:8px;">+ Agregar hito</button>';
     renderHitoEditList();modal.style.display='flex';
     document.getElementById('add-hito-btn').onclick=async()=>{const h={id:uid(),emoji:'🎯',text:'Nuevo hito'};state.hitos.push(h);await saveHito(h);renderHitoEditList();};
-    document.getElementById('modal-save').onclick=async()=>{await Promise.all(state.hitos.map(h=>saveHito(h)));modal.style.display='none';render();};
+    document.getElementById('modal-save').onclick=async()=>{
+      // Guardar texto de inputs antes de cerrar
+      document.querySelectorAll('#hito-edit-list input[type="text"]').forEach(inp=>{
+        const h=state.hitos.find(x=>x.id===inp.dataset.hitoId);if(h)h.text=inp.value;
+      });
+      await Promise.all(state.hitos.map(h=>saveHito(h)));modal.style.display='none';render();
+    };
     const dc=()=>{modal.style.display='none';render();};document.getElementById('modal-cancel').onclick=dc;document.getElementById('modal-close').onclick=dc;
   }
 
@@ -599,7 +616,7 @@ card.appendChild(nDelBtn);
       HITO_EMOJIS.forEach(em=>{const opt=document.createElement('option');opt.value=em;opt.textContent=em;if(em===h.emoji)opt.selected=true;sel.appendChild(opt);});
       sel.addEventListener('change',()=>{h.emoji=sel.value;});
       const inp=document.createElement('input');inp.type='text';inp.value=h.text;inp.style.cssText='flex:1;padding:8px 12px;font-size:14px;font-family:var(--font);border:0.5px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);outline:none;';
-      inp.addEventListener('input',()=>{h.text=inp.value;});
+      inp.dataset.hitoId=h.id;inp.addEventListener('input',()=>{h.text=inp.value;});
       const del=document.createElement('button');del.textContent='🗑️';del.className='ib';del.addEventListener('click',async()=>{await deleteHito(h.id);state.hitos.splice(i,1);renderHitoEditList();});
       row.appendChild(sel);row.appendChild(inp);row.appendChild(del);list.appendChild(row);
     });

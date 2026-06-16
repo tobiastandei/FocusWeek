@@ -19,7 +19,6 @@
     <nav class="tabs">
       <button class="tab active" data-tab="today">Hoy</button>
       <button class="tab" data-tab="week">Semana</button>
-      <button class="tab" data-tab="pending">Pendientes</button>
       <button class="tab" data-tab="capture">Capture</button>
       <button class="tab" data-tab="notes">Notas</button>
     </nav>
@@ -109,22 +108,11 @@
       </div>
     </section>
 
-    <!-- PENDIENTES -->
-    <section class="view" id="view-pending">
-      <div class="today-header">
-        <div class="today-date">Pendientes</div>
-        <div class="today-subtitle">tareas sin completar de los últimos 7 días</div>
-      </div>
-      <div class="task-list" id="pending-list"></div>
-      <div id="pending-empty" style="display:none;text-align:center;padding:40px 20px;color:var(--text-tertiary);font-size:14px;">🎉 Sin pendientes. ¡Todo al día!</div>
-    </section>
-
     <!-- QUICK CAPTURE -->
     <section class="view" id="view-capture">
       <div class="capture-header">
         <div class="capture-title">Quick Capture</div>
-        <div class="capture-subtitle">tus ideas, siempre a mano</div>
-      </div>
+        </div>
       <div class="task-section">
         <div class="section-header">
           <span class="section-title" style="color:#C0392B">💼 Ecom&Roll</span>
@@ -166,7 +154,10 @@
     <!-- NOTAS -->
     <section class="view" id="view-notes">
       <div class="notes-header">
-        <div class="notes-title">Notas</div>
+        <div>
+          <div class="notes-title">Notas</div>
+          <div class="capture-subtitle" style="margin-top:2px;">tus ideas, siempre a mano</div>
+        </div>
         <button class="btn-new-note" id="new-note">+ Nueva</button>
       </div>
       <div class="notes-list" id="notes-list"></div>
