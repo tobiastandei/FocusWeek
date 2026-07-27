@@ -20,6 +20,7 @@
       <button class="tab active" data-tab="today">Hoy</button>
       <button class="tab" data-tab="week">Semana</button>
       <button class="tab" data-tab="capture">Capture</button>
+      <button class="tab" data-tab="reminders">Reminders</button>
       <button class="tab" data-tab="notes">Notas</button>
     </nav>
 
@@ -147,6 +148,49 @@
         <div class="add-row">
           <input type="text" id="qc-add-carwash" placeholder="Agregar a Car Wash MVP...">
           <button class="btn-add" data-qc-add="carwash">Agregar</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- REMINDERS -->
+    <section class="view" id="view-reminders">
+      <div class="capture-header">
+        <div class="capture-title">Reminders</div>
+      </div>
+      <div class="task-section">
+        <div class="section-header">
+          <span class="section-title" style="color:#C0392B">💼 Ecom&Roll</span>
+          <span class="section-pct" id="rm-pct-trabajo">0%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="rm-bar-trabajo" style="width:0%;background:#C0392B"></div></div>
+        <div class="task-list" id="rm-list-trabajo"></div>
+        <div class="add-row">
+          <input type="text" id="rm-add-trabajo" placeholder="Agregar a Ecom&Roll...">
+          <button class="btn-add" data-rm-add="trabajo">Agregar</button>
+        </div>
+      </div>
+      <div class="task-section">
+        <div class="section-header">
+          <span class="section-title" style="color:#6C63FF">🌱 Vida Personal</span>
+          <span class="section-pct" id="rm-pct-vida">0%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="rm-bar-vida" style="width:0%;background:#6C63FF"></div></div>
+        <div class="task-list" id="rm-list-vida"></div>
+        <div class="add-row">
+          <input type="text" id="rm-add-vida" placeholder="Agregar a Vida Personal...">
+          <button class="btn-add" data-rm-add="vida">Agregar</button>
+        </div>
+      </div>
+      <div class="task-section">
+        <div class="section-header">
+          <span class="section-title" style="color:#1DB954">🚗 Car Wash MVP</span>
+          <span class="section-pct" id="rm-pct-carwash">0%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="rm-bar-carwash" style="width:0%;background:#1DB954"></div></div>
+        <div class="task-list" id="rm-list-carwash"></div>
+        <div class="add-row">
+          <input type="text" id="rm-add-carwash" placeholder="Agregar a Car Wash MVP...">
+          <button class="btn-add" data-rm-add="carwash">Agregar</button>
         </div>
       </div>
     </section>

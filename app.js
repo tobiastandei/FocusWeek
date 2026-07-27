@@ -27,12 +27,13 @@
   function todayStr() { return new Date().toISOString().slice(0, 10); }
   function dateFromOffset(o) { const d = new Date(); d.setDate(d.getDate() + o); return d.toISOString().slice(0, 10); }
   function getWeekKey() { const n=new Date(),day=n.getDay(),diff=n.getDate()-day+(day===0?-6:1),m=new Date(n);m.setDate(diff);return m.toISOString().slice(0,10); }
-  function getDefaultState() { return { hitos:[], dayTasks:{}, quickCapture:{trabajo:[],vida:[],carwash:[]}, notes:[] }; }
+  function getDefaultState() { return { hitos:[], dayTasks:{}, quickCapture:{trabajo:[],vida:[],carwash:[]}, reminders:{trabajo:[],vida:[],carwash:[]}, notes:[] }; }
   function getDayTasks(d) { if(!state.dayTasks[d])state.dayTasks[d]={foco:[],ops:[]};return state.dayTasks[d]; }
-  function getTasksArray(group, dayKey) { if(dayKey==='quick-capture')return state.quickCapture[group]||[];return getDayTasks(dayKey)[group]||[]; }
+  function getTasksArray(group, dayKey) { if(dayKey==='reminders')return state.reminders[group]||[];if(dayKey==='quick-capture')return state.quickCapture[group]||[];return getDayTasks(dayKey)[group]||[]; }
   function uid() { return Math.random().toString(36).slice(2,10); }
 
   function getListEl(group, dayKey) {
+    if(dayKey==='reminders')return document.getElementById('rm-list-'+group);
     if(dayKey==='quick-capture')return document.getElementById('qc-list-'+group);
     if(activeTab==='today')return document.getElementById('list-'+group);
     return document.getElementById('scroll-list-'+group);
@@ -88,10 +89,11 @@
   async function loadFromSupabase() {
     if(!currentUser)return;
     const s=dateFromOffset(-DAYS_BACK),e=dateFromOffset(DAYS_FORWARD),wk=getWeekKey();
-    const[{data:h},{data:rt},{data:qc},{data:n}]=await Promise.all([
+    const[{data:h},{data:rt},{data:qc},{data:rm},{data:n}]=await Promise.all([
       sb.from('hitos').select('*').eq('user_id',currentUser.id).eq('week_key',wk).order('position'),
-      sb.from('tasks').select('*').eq('user_id',currentUser.id).neq('week_key','quick-capture').gte('week_key',s).lte('week_key',e).order('position'),
+      sb.from('tasks').select('*').eq('user_id',currentUser.id).neq('week_key','quick-capture').neq('week_key','reminders').gte('week_key',s).lte('week_key',e).order('position'),
       sb.from('tasks').select('*').eq('user_id',currentUser.id).eq('week_key','quick-capture').order('position'),
+      sb.from('tasks').select('*').eq('user_id',currentUser.id).eq('week_key','reminders').order('position'),
       sb.from('notes').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false})
     ]);
     state.hitos=(h||[]).map(x=>({id:x.id,emoji:x.emoji,text:x.text}));
@@ -99,6 +101,8 @@
     (rt||[]).forEach(t=>{if(!state.dayTasks[t.week_key])state.dayTasks[t.week_key]={foco:[],ops:[]};if(!state.dayTasks[t.week_key][t.group_name])state.dayTasks[t.week_key][t.group_name]=[];state.dayTasks[t.week_key][t.group_name].push({id:t.id,text:t.text,note:t.note||'',done:t.done,tag:t.tag||''});});
     state.quickCapture={trabajo:[],vida:[],carwash:[]};
     (qc||[]).forEach(t=>{if(QC_GROUPS.includes(t.group_name))state.quickCapture[t.group_name].push({id:t.id,text:t.text,note:t.note||'',done:t.done,tag:t.tag||''});});
+    state.reminders={trabajo:[],vida:[],carwash:[]};
+    (rm||[]).forEach(t=>{if(QC_GROUPS.includes(t.group_name))state.reminders[t.group_name].push({id:t.id,text:t.text,note:t.note||'',done:t.done,tag:t.tag||''});});
     state.notes=(n||[]).map(x=>({id:x.id,title:x.title,body:x.body,createdAt:x.created_at}));
     applyNoteOrder();
     render();
@@ -177,6 +181,7 @@
     else if(activeTab==='week')renderScrollableWeek();
     else if(activeTab==='pending')renderPending();
     else if(activeTab==='capture')renderQuickCapture();
+    else if(activeTab==='reminders')renderReminders();
     else if(activeTab==='notes')renderNotes();
   }
 
@@ -302,6 +307,12 @@ rowWrap.appendChild(row);list.appendChild(rowWrap);
     const st=document.getElementById('scroll-day-stats');if(st)st.textContent=all.length?done+'/'+all.length+' completadas':'sin tareas';
     renderTaskList('foco',dd.foco,'scroll-list-foco','scroll-bar-foco','scroll-pct-foco','#C0392B',selectedDate);
     renderTaskList('ops',dd.ops,'scroll-list-ops','scroll-bar-ops','scroll-pct-ops','#6C63FF',selectedDate);
+  }
+
+  function renderReminders(){
+    renderTaskList('trabajo',state.reminders.trabajo,'rm-list-trabajo','rm-bar-trabajo','rm-pct-trabajo','#C0392B','reminders');
+    renderTaskList('vida',state.reminders.vida,'rm-list-vida','rm-bar-vida','rm-pct-vida','#6C63FF','reminders');
+    renderTaskList('carwash',state.reminders.carwash,'rm-list-carwash','rm-bar-carwash','rm-pct-carwash','#1DB954','reminders');
   }
 
   function renderQuickCapture(){
@@ -624,13 +635,15 @@ card.appendChild(nDelBtn);
 
   async function addTask(group, dayKey){
     const isQC=dayKey==='quick-capture';
+    const isRM=dayKey==='reminders';
     let inputId;
-    if(isQC)inputId='qc-add-'+group;
+    if(isRM)inputId='rm-add-'+group;
+    else if(isQC)inputId='qc-add-'+group;
     else if(dayKey===todayStr()&&activeTab==='today')inputId='add-'+group;
     else inputId='scroll-add-'+group;
     const inp=document.getElementById(inputId);if(!inp||!inp.value.trim())return;
     const task={id:uid(),text:inp.value.trim(),done:false,note:'',tag:''};
-    if(isQC)state.quickCapture[group].push(task);else getDayTasks(dayKey)[group].push(task);
+    if(dayKey==='reminders')state.reminders[group].push(task);else if(isQC)state.quickCapture[group].push(task);else getDayTasks(dayKey)[group].push(task);
     inp.value='';await saveTask(task,group,dayKey);render();
   }
 
@@ -652,6 +665,8 @@ card.appendChild(nDelBtn);
     ['foco','ops'].forEach(g=>{const inp=document.getElementById('scroll-add-'+g);if(inp)inp.addEventListener('keydown',e=>{if(e.key==='Enter')addTask(g,selectedDate);});});
     document.querySelectorAll('[data-qc-add]').forEach(btn=>btn.addEventListener('click',()=>addTask(btn.dataset.qcAdd,'quick-capture')));
     QC_GROUPS.forEach(g=>{const inp=document.getElementById('qc-add-'+g);if(inp)inp.addEventListener('keydown',e=>{if(e.key==='Enter')addTask(g,'quick-capture');});});
+    document.querySelectorAll('[data-rm-add]').forEach(btn=>btn.addEventListener('click',()=>addTask(btn.dataset.rmAdd,'reminders')));
+    QC_GROUPS.forEach(g=>{const inp=document.getElementById('rm-add-'+g);if(inp)inp.addEventListener('keydown',e=>{if(e.key==='Enter')addTask(g,'reminders');});});
     document.getElementById('edit-hitos')?.addEventListener('click',openHitosModal);
     document.getElementById('new-note')?.addEventListener('click',()=>openNoteModal(null));
 
