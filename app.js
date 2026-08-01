@@ -323,10 +323,10 @@ rowWrap.appendChild(row);list.appendChild(rowWrap);
 
   function renderTaskList(group, tasks, listId, barId, pctId, color, dayKey){
     const el=document.getElementById(listId);if(!el)return;el.innerHTML='';
-    const pending=tasks.filter(t=>!t.done);const done=tasks.filter(t=>t.done);
+    const pending=tasks.filter(t=>!t.done);const doneTasks=tasks.filter(t=>t.done);
     pending.sort((a,b)=>(b.tag==='Alta'?1:0)-(a.tag==='Alta'?1:0));
-    tasks=[...pending,...done];
-    const total=tasks.length,done=tasks.filter(t=>t.done).length;
+    tasks=[...pending,...doneTasks];
+    const total=tasks.length,done=doneTasks.length;
     const pct=total?Math.round((done/total)*100):0;
     const bar=document.getElementById(barId),pe=document.getElementById(pctId);
     if(bar){bar.style.width=pct+'%';bar.style.background=pct===100&&total>0?'#1DB954':color;}
