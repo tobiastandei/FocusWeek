@@ -436,7 +436,7 @@ rowWrap.appendChild(row);list.appendChild(rowWrap);
     editBtn.addEventListener('click',e=>{e.stopPropagation();isEdit?commitEdit():startEdit(t.id,group,dayKey);});
     const delBtn=document.createElement('button');delBtn.className='ib';delBtn.textContent='🗑️';
     delBtn.addEventListener('click',async e=>{
-      e.stopPropagation();const copy={...t};const arr=getTasksArray(group,dayKey);arr.splice(idx,1);
+      e.stopPropagation();const copy={...t};const arr=getTasksArray(group,dayKey);const realIdx=arr.findIndex(x=>x.id===t.id);if(realIdx>=0)arr.splice(realIdx,1);
       await deleteTask(t.id);render();showUndo(t.text,copy,group,dayKey);
     });
     actions.appendChild(editBtn);actions.appendChild(delBtn);div.appendChild(actions);
@@ -468,7 +468,7 @@ rowWrap.appendChild(row);list.appendChild(rowWrap);
         t.done=!t.done;await saveTask(t,group,dayKey);render();
       } else if(swDx<-75){
         div.style.transform='translateX(-110%)';
-        setTimeout(async()=>{const copy={...t};const arr=getTasksArray(group,dayKey);arr.splice(idx,1);await deleteTask(t.id);showUndo(t.text,copy,group,dayKey);render();},200);
+        setTimeout(async()=>{const copy={...t};const arr=getTasksArray(group,dayKey);const realIdx=arr.findIndex(x=>x.id===t.id);if(realIdx>=0)arr.splice(realIdx,1);await deleteTask(t.id);showUndo(t.text,copy,group,dayKey);render();},200);
         return;
       } else {
         div.style.transform='';wrap.style.background='';delBg.style.opacity='0';
