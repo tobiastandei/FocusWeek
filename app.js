@@ -531,6 +531,9 @@ rowWrap.appendChild(row);list.appendChild(rowWrap);
 
   function getNoteOrder(){try{return JSON.parse(localStorage.getItem('fw_note_order')||'[]');}catch{return [];}}
   function saveNoteOrder(){localStorage.setItem('fw_note_order',JSON.stringify(state.notes.map(n=>n.id)));}
+  function getNoteTagMap(){try{return JSON.parse(localStorage.getItem('fw_note_tags')||'{}');}catch{return {};}}
+  function getNoteTag(id){return getNoteTagMap()[id]||'';}
+  function setNoteTag(id,tag){const m=getNoteTagMap();if(tag)m[id]=tag;else delete m[id];localStorage.setItem('fw_note_tags',JSON.stringify(m));}
   function applyNoteOrder(){const order=getNoteOrder();if(!order.length)return;state.notes.sort((a,b)=>{const ia=order.indexOf(a.id),ib=order.indexOf(b.id);if(ia===-1&&ib===-1)return 0;if(ia===-1)return 1;if(ib===-1)return -1;return ia-ib;});}
 
   let noteDragIdx=null;
@@ -549,7 +552,8 @@ rowWrap.appendChild(row);list.appendChild(rowWrap);
       const card=document.createElement('div');card.className='note-card';
       const date=new Date(n.createdAt);
       const ds=date.toLocaleDateString('es',{weekday:'short',day:'numeric',month:'short'})+' · '+date.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
-      card.innerHTML='<div class="note-title">'+(n.title||'Sin título')+'</div><div class="note-preview">'+(n.body||'').slice(0,120)+((n.body||'').length>120?'…':'')+'</div><div class="note-date">'+ds+'</div>';
+      const nt=getNoteTag(n.id);
+      card.innerHTML='<div class="note-title">'+(n.title||'Sin título')+'</div>'+(nt?'<span class="note-tag-badge note-tag-'+nt.toLowerCase().replace(/[^a-z]/g,'')+'">'+nt+'</span>':'')+'<div class="note-preview">'+(n.body||'').slice(0,120)+((n.body||'').length>120?'…':'')+'</div><div class="note-date">'+ds+'</div>';
       let swX=0,swDx=0;
       card.addEventListener('touchstart',e=>{swX=e.touches[0].clientX;},{passive:true});
       card.addEventListener('touchmove',e=>{swDx=e.touches[0].clientX-swX;if(swDx<0){card.style.transition='none';card.style.transform='translateX('+Math.max(-90,swDx)+'px)';}},{passive:true});
@@ -608,12 +612,28 @@ card.appendChild(nDelBtn);
   function openNoteModal(note){
     const modal=document.getElementById('modal'),title=document.getElementById('modal-title'),body=document.getElementById('modal-body');if(!modal)return;
     title.textContent=note?'Editar nota':'Nueva nota';
-    body.innerHTML='<input type="text" id="note-title-input" placeholder="Título..." value="'+(note?note.title||'':'')+'"><textarea id="note-body-input" placeholder="Escribí tu nota acá...">'+(note?note.body||'':'')+'</textarea>';
+    const currentTag=note?getNoteTag(note.id):'';
+    const NOTE_TAGS=['Ecom&Roll','Vida Personal','Ideas'];
+    body.innerHTML='<input type="text" id="note-title-input" placeholder="Título..." value="'+(note?note.title||'':'')+'"><textarea id="note-body-input" placeholder="Escribí tu nota acá...">'+(note?note.body||'':'')+'</textarea><div class="tag-picker" id="note-tag-picker" style="margin-top:12px;"></div>';
     modal.style.display='flex';
+    let selectedTag=currentTag;
+    const picker=document.getElementById('note-tag-picker');
+    NOTE_TAGS.forEach(tag=>{
+      const btn=document.createElement('button');
+      const cls='note-tag-'+tag.toLowerCase().replace(/[^a-z]/g,'');
+      btn.className='tag-option'+(selectedTag===tag?' selected '+cls:'');
+      btn.textContent=tag;
+      btn.addEventListener('click',e=>{
+        e.stopPropagation();
+        if(selectedTag===tag){selectedTag='';picker.querySelectorAll('.tag-option').forEach(b=>b.className='tag-option');}
+        else{selectedTag=tag;picker.querySelectorAll('.tag-option').forEach(b=>b.className='tag-option');btn.className='tag-option selected '+cls;}
+      });
+      picker.appendChild(btn);
+    });
     document.getElementById('modal-save').onclick=async()=>{
       const tv=document.getElementById('note-title-input').value.trim(),bv=document.getElementById('note-body-input').value.trim();
-      if(note){const nb=state.notes.find(x=>x.id===note.id);if(nb){nb.title=tv;nb.body=bv;}await sb.from('notes').update({title:tv,body:bv,updated_at:new Date().toISOString()}).eq('id',note.id);}
-      else{const{data}=await sb.from('notes').insert({user_id:currentUser.id,title:tv,body:bv}).select().single();if(data){state.notes.unshift({id:data.id,title:data.title,body:data.body,createdAt:data.created_at});saveNoteOrder();}}
+      if(note){const nb=state.notes.find(x=>x.id===note.id);if(nb){nb.title=tv;nb.body=bv;}await sb.from('notes').update({title:tv,body:bv,updated_at:new Date().toISOString()}).eq('id',note.id);setNoteTag(note.id,selectedTag);}
+      else{const{data}=await sb.from('notes').insert({user_id:currentUser.id,title:tv,body:bv}).select().single();if(data){state.notes.unshift({id:data.id,title:data.title,body:data.body,createdAt:data.created_at});saveNoteOrder();setNoteTag(data.id,selectedTag);}}
       modal.style.display='none';renderNotes();
     };
     const dc=()=>{modal.style.display='none';};document.getElementById('modal-cancel').onclick=dc;document.getElementById('modal-close').onclick=dc;
