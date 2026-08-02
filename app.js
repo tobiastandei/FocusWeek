@@ -185,16 +185,27 @@
     else if(activeTab==='notes')renderNotes();
   }
 
+  function getHoyTasks(){
+    const hoy=[];
+    ['quickCapture','reminders'].forEach(src=>{
+      QC_GROUPS.forEach(g=>{
+        (state[src][g]||[]).forEach(t=>{if(t.tag==='Hoy'){const tc=Object.assign(t,{_srcKey:src==='quickCapture'?'quick-capture':'reminders',_srcGroup:g});hoy.push(tc);}});
+      });
+    });
+    return hoy;
+  }
+
   function renderToday(){
     const today=todayStr();const d=new Date();
     const hEl=document.getElementById('today-date');if(hEl)hEl.textContent=DAYS_ES[d.getDay()]+' '+d.getDate()+' de '+MONTHS[d.getMonth()];
     const dt=getDayTasks(today);
-    let all=[...dt.foco,...dt.ops];if(activeTagFilter)all=all.filter(t=>t.tag===activeTagFilter);
+    const hoyTasks=getHoyTasks();
+    let all=[...dt.foco,...dt.ops,...hoyTasks];if(activeTagFilter)all=all.filter(t=>t.tag===activeTagFilter);
     const done=all.filter(t=>t.done).length;
     const sub=document.getElementById('today-subtitle');if(sub)sub.textContent=all.length?done+' de '+all.length+' tareas completadas':'Agregá tus tareas del día';
     renderHitos();
     const ff=activeTagFilter?dt.foco.filter(t=>t.tag===activeTagFilter):dt.foco;
-    const fo=activeTagFilter?dt.ops.filter(t=>t.tag===activeTagFilter):dt.ops;
+    const fo=[...(activeTagFilter?dt.ops.filter(t=>t.tag===activeTagFilter):dt.ops),...(activeTagFilter?hoyTasks.filter(t=>t.tag===activeTagFilter):hoyTasks)];
     renderTaskList('foco',ff,'list-foco','bar-foco','pct-foco','#C0392B',today);
     renderTaskList('ops',fo,'list-ops','bar-ops','pct-ops','#6C63FF',today);
   }
@@ -342,6 +353,7 @@ rowWrap.appendChild(row);list.appendChild(rowWrap);
   }
 
   function makeTaskEl(t, idx, group, dayKey){
+    const effGroup=t._srcGroup||group;const effDayKey=t._srcKey||dayKey;
     const isEdit=editId===t.id,isNoteEdit=editNoteId===t.id;
 
     // FIX 1: Removed doneBg entirely. Outer wrapper only has delBg.
@@ -359,14 +371,14 @@ rowWrap.appendChild(row);list.appendChild(rowWrap);
     const div=document.createElement('div');
     div.className='task'+(t.done?' done':'')+(isEdit||isNoteEdit?' editing':'');
 
-    div.addEventListener('dragover',e=>{e.preventDefault();if(!dragState)return;clearIndicators();const r=wrap.getBoundingClientRect();const pos=e.clientY<r.top+r.height/2?idx:idx+1;const ind=wrap.parentElement?.querySelector('.drop-indicator[data-pos="'+pos+'"]');if(ind)ind.classList.add('visible');dropTarget={group,pos,dayKey};});
-    div.addEventListener('drop',e=>handleDrop(e,group,dayKey));
+    div.addEventListener('dragover',e=>{e.preventDefault();if(!dragState)return;clearIndicators();const r=wrap.getBoundingClientRect();const pos=e.clientY<r.top+r.height/2?idx:idx+1;const ind=wrap.parentElement?.querySelector('.drop-indicator[data-pos="'+pos+'"]');if(ind)ind.classList.add('visible');dropTarget={group:effGroup,pos,dayKey:effDayKey};});
+    div.addEventListener('drop',e=>handleDrop(e,effGroup,effDayKey));
 
     // GRIP
     const grip=document.createElement('div');grip.className='grip';
     grip.innerHTML='<div class="grip-row"><div class="grip-dot"></div><div class="grip-dot"></div></div>'.repeat(3);
     grip.draggable=true;
-    grip.addEventListener('dragstart',e=>{dragState={group,idx,dayKey};div.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setDragImage(div,0,0);});
+    grip.addEventListener('dragstart',e=>{dragState={group:effGroup,idx,dayKey:effDayKey};div.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setDragImage(div,0,0);});
     grip.addEventListener('dragend',()=>{div.classList.remove('dragging');clearIndicators();dragState=null;});
 
     let lpTimer=null;
@@ -380,7 +392,7 @@ rowWrap.appendChild(row);list.appendChild(rowWrap);
         tdClone.style.cssText='position:fixed;left:'+rect.left+'px;top:'+rect.top+'px;width:'+rect.width+'px;z-index:9999;opacity:0.9;box-shadow:0 16px 48px rgba(0,0,0,0.6);transform:scale(1.03) rotate(1deg);pointer-events:none;border-radius:10px;';
         document.body.appendChild(tdClone);
         wrap.style.opacity='0.15';
-        td={wrap,idx,group,dayKey,listEl:getListEl(group,dayKey),startY:touch.clientY,origTop:rect.top,origH:rect.height};
+        td={wrap,idx,group:effGroup,dayKey:effDayKey,listEl:getListEl(effGroup,effDayKey),startY:touch.clientY,origTop:rect.top,origH:rect.height};
       },300);
     },{passive:true});
     grip.addEventListener('touchend',()=>clearTimeout(lpTimer));
@@ -390,7 +402,7 @@ rowWrap.appendChild(row);list.appendChild(rowWrap);
     // CHECKBOX
     const cb=document.createElement('div');cb.className='cb';
     if(t.done)cb.innerHTML='<svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2.5 6L5 8.5L9.5 3.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-    const toggleDone=async()=>{t.done=!t.done;await saveTask(t,group,dayKey);render();};
+    const toggleDone=async()=>{t.done=!t.done;await saveTask(t,effGroup,effDayKey);render()};
     cb.addEventListener('click',async e=>{e.stopPropagation();await toggleDone();});
     cb.addEventListener('touchend',e=>{e.preventDefault();e.stopPropagation();toggleDone();});
     div.appendChild(cb);
@@ -403,7 +415,8 @@ rowWrap.appendChild(row);list.appendChild(rowWrap);
       inp.addEventListener('click',e=>e.stopPropagation());
       content.appendChild(inp);
       const tp=document.createElement('div');tp.className='tag-picker';
-      const tagOpts=[{label:'🔴 Alta',val:'Alta',cls:'alta'},{label:'🟡 Media',val:'Media',cls:'media'},{label:'🟢 Baja',val:'Baja',cls:'baja'},{label:'🔵 Personal',val:'Personal',cls:'personal'}];
+      const isCaptureLike=effDayKey==='quick-capture'||effDayKey==='reminders';
+      const tagOpts=isCaptureLike?[{label:'🔴 Alta',val:'Alta',cls:'alta'},{label:'🟡 Media',val:'Media',cls:'media'},{label:'🟢 Baja',val:'Baja',cls:'baja'},{label:'📅 Hoy',val:'Hoy',cls:'hoy'}]:[{label:'🔴 Alta',val:'Alta',cls:'alta'},{label:'🟡 Media',val:'Media',cls:'media'},{label:'🟢 Baja',val:'Baja',cls:'baja'},{label:'🔵 Personal',val:'Personal',cls:'personal'}];
       tagOpts.forEach(({label,val,cls})=>{
         const btn=document.createElement('button');btn.className='tag-option'+((t.tag===val)?' selected '+cls:'');btn.textContent=label;
         btn.addEventListener('click',e=>{e.stopPropagation();if(t.tag===val){t.tag='';tp.querySelectorAll('.tag-option').forEach(b=>b.className='tag-option');}else{t.tag=val;tp.querySelectorAll('.tag-option').forEach(b=>b.className='tag-option');btn.className='tag-option selected '+cls;}});
@@ -415,7 +428,7 @@ rowWrap.appendChild(row);list.appendChild(rowWrap);
       const txt=document.createElement('div');txt.className='task-text';txt.textContent=t.text;
       content.appendChild(txt);
       if(t.tag){const badge=document.createElement('span');badge.className='tag-badge '+t.tag.toLowerCase();badge.textContent=t.tag;content.appendChild(badge);}
-      content.addEventListener('click',e=>{if(e.target.closest('[data-addnote]'))return;e.stopPropagation();startEdit(t.id,group,dayKey);});
+      content.addEventListener('click',e=>{if(e.target.closest('[data-addnote]'))return;e.stopPropagation();startEdit(t.id,effGroup,effDayKey);});
     }
     if(isNoteEdit){
       const ni=document.createElement('input');ni.className='note-input';ni.id='ni-'+t.id;ni.value=t.note||'';ni.placeholder='Agregar nota...';
@@ -424,10 +437,10 @@ rowWrap.appendChild(row);list.appendChild(rowWrap);
       content.appendChild(ni);setTimeout(()=>ni.focus(),10);
     } else if(t.note&&!t.done){
       const ne=document.createElement('div');ne.className='task-note';ne.dataset.addnote='1';ne.textContent=t.note;
-      ne.addEventListener('click',e=>{e.stopPropagation();startNoteEdit(t.id,group,dayKey);});content.appendChild(ne);
+      ne.addEventListener('click',e=>{e.stopPropagation();startNoteEdit(t.id,effGroup,effDayKey);});content.appendChild(ne);
     } else if(!t.done&&!isEdit){
       const btn=document.createElement('button');btn.className='add-note-btn';btn.dataset.addnote='1';btn.textContent='+ nota';
-      btn.addEventListener('click',e=>{e.stopPropagation();startNoteEdit(t.id,group,dayKey);});content.appendChild(btn);
+      btn.addEventListener('click',e=>{e.stopPropagation();startNoteEdit(t.id,effGroup,effDayKey);});content.appendChild(btn);
     }
     div.appendChild(content);
 
@@ -435,11 +448,11 @@ rowWrap.appendChild(row);list.appendChild(rowWrap);
     const actions=document.createElement('div');actions.className='task-actions';
     if(isEdit||isNoteEdit)actions.style.opacity='1';
     const editBtn=document.createElement('button');editBtn.className='ib';editBtn.textContent='✏️';
-    editBtn.addEventListener('click',e=>{e.stopPropagation();isEdit?commitEdit():startEdit(t.id,group,dayKey);});
+    editBtn.addEventListener('click',e=>{e.stopPropagation();isEdit?commitEdit():startEdit(t.id,effGroup,effDayKey);});
     const delBtn=document.createElement('button');delBtn.className='ib';delBtn.textContent='🗑️';
     delBtn.addEventListener('click',async e=>{
-      e.stopPropagation();const copy={...t};const arr=getTasksArray(group,dayKey);const realIdx=arr.findIndex(x=>x.id===t.id);if(realIdx>=0)arr.splice(realIdx,1);
-      await deleteTask(t.id);render();showUndo(t.text,copy,group,dayKey);
+      e.stopPropagation();const copy={...t};const arr=getTasksArray(effGroup,effDayKey);const realIdx=arr.findIndex(x=>x.id===t.id);if(realIdx>=0)arr.splice(realIdx,1);
+      await deleteTask(t.id);render();showUndo(t.text,copy,effGroup,effDayKey);
     });
     actions.appendChild(editBtn);actions.appendChild(delBtn);div.appendChild(actions);
 
@@ -470,7 +483,7 @@ rowWrap.appendChild(row);list.appendChild(rowWrap);
         t.done=!t.done;await saveTask(t,group,dayKey);render();
       } else if(swDx<-75){
         div.style.transform='translateX(-110%)';
-        setTimeout(async()=>{const copy={...t};const arr=getTasksArray(group,dayKey);const realIdx=arr.findIndex(x=>x.id===t.id);if(realIdx>=0)arr.splice(realIdx,1);await deleteTask(t.id);showUndo(t.text,copy,group,dayKey);render();},200);
+        setTimeout(async()=>{const copy={...t};const arr=getTasksArray(effGroup,effDayKey);const realIdx=arr.findIndex(x=>x.id===t.id);if(realIdx>=0)arr.splice(realIdx,1);await deleteTask(t.id);showUndo(t.text,copy,effGroup,effDayKey);render();},200);
         return;
       } else {
         div.style.transform='';wrap.style.background='';delBg.style.opacity='0';
