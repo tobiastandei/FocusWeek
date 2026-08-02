@@ -11,7 +11,7 @@
   const HITO_EMOJIS = ['🎯','📊','📱','🌐','⚡','🔥','💡','✅'];
   const DAYS_BACK = 15, DAYS_FORWARD = 30;
   const TAGS = ['Alta','Media','Baja','Personal'];
-  const QC_GROUPS = ['trabajo','vida','carwash'];
+  const QC_GROUPS = ['trabajo','vida'];
 
   let currentUser = null;
   let state = getDefaultState();
