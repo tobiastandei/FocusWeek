@@ -31,6 +31,8 @@
   function getDayTasks(d) { if(!state.dayTasks[d])state.dayTasks[d]={foco:[],ops:[]};return state.dayTasks[d]; }
   function getTasksArray(group, dayKey) { if(dayKey==='reminders')return state.reminders[group]||[];if(dayKey==='quick-capture')return state.quickCapture[group]||[];return getDayTasks(dayKey)[group]||[]; }
   function uid() { return Math.random().toString(36).slice(2,10); }
+  function parseTags(tag) { return (tag||'').split(',').map(s=>s.trim()).filter(Boolean); }
+  function serializeTags(arr) { return arr.join(','); }
 
   function getListEl(group, dayKey) {
     if(dayKey==='reminders')return document.getElementById('rm-list-'+group);
@@ -200,12 +202,12 @@
     const hEl=document.getElementById('today-date');if(hEl)hEl.textContent=DAYS_ES[d.getDay()]+' '+d.getDate()+' de '+MONTHS[d.getMonth()];
     const dt=getDayTasks(today);
     const hoyTasks=getHoyTasks();
-    let all=[...dt.foco,...dt.ops,...hoyTasks];if(activeTagFilter)all=all.filter(t=>t.tag===activeTagFilter);
+    let all=[...dt.foco,...dt.ops,...hoyTasks];if(activeTagFilter)all=all.filter(t=>parseTags(t.tag).includes(activeTagFilter));
     const done=all.filter(t=>t.done).length;
     const sub=document.getElementById('today-subtitle');if(sub)sub.textContent=all.length?done+' de '+all.length+' tareas completadas':'Agregá tus tareas del día';
     renderHitos();
-    const ff=activeTagFilter?dt.foco.filter(t=>t.tag===activeTagFilter):dt.foco;
-    const fo=[...(activeTagFilter?dt.ops.filter(t=>t.tag===activeTagFilter):dt.ops),...(activeTagFilter?hoyTasks.filter(t=>t.tag===activeTagFilter):hoyTasks)];
+    const ff=activeTagFilter?dt.foco.filter(t=>parseTags(t.tag).includes(activeTagFilter)):dt.foco;
+    const fo=[...(activeTagFilter?dt.ops.filter(t=>parseTags(t.tag).includes(activeTagFilter)):dt.ops),...(activeTagFilter?hoyTasks.filter(t=>parseTags(t.tag).includes(activeTagFilter)):hoyTasks)];
     renderTaskList('foco',ff,'list-foco','bar-foco','pct-foco','#C0392B',today);
     renderTaskList('ops',fo,'list-ops','bar-ops','pct-ops','#6C63FF',today);
   }
@@ -258,7 +260,7 @@
         cb.addEventListener('touchend',e=>{e.preventDefault();e.stopPropagation();complete();});
         row.appendChild(cb);
         const c=document.createElement('div');c.className='task-content';
-        c.innerHTML='<div class="task-text">'+t.text+'</div>'+(t.tag?'<span class="tag-badge '+t.tag.toLowerCase()+'">'+t.tag+'</span>':'');
+        c.innerHTML='<div class="task-text">'+t.text+'</div>'+parseTags(t.tag).map(tag=>'<span class="tag-badge '+tag.toLowerCase()+'">'+tag+'</span>').join('');
         row.appendChild(c);
 
         // Swipe to delete
@@ -335,7 +337,7 @@ rowWrap.appendChild(row);list.appendChild(rowWrap);
   function renderTaskList(group, tasks, listId, barId, pctId, color, dayKey){
     const el=document.getElementById(listId);if(!el)return;el.innerHTML='';
     const pending=tasks.filter(t=>!t.done);const doneTasks=tasks.filter(t=>t.done);
-    pending.sort((a,b)=>(b.tag==='Alta'?1:0)-(a.tag==='Alta'?1:0));
+    pending.sort((a,b)=>(parseTags(b.tag).includes('Alta')?1:0)-(parseTags(a.tag).includes('Alta')?1:0));
     tasks=[...pending,...doneTasks];
     const total=tasks.length,done=doneTasks.length;
     const pct=total?Math.round((done/total)*100):0;
@@ -420,8 +422,16 @@ rowWrap.appendChild(row);list.appendChild(rowWrap);
       // In Hoy tab, also show Personal for capture-like tasks
       const finalTagOpts=(isCaptureLike&&activeTab==='today')?[{label:'🔴 Alta',val:'Alta',cls:'alta'},{label:'📅 Hoy',val:'Hoy',cls:'hoy'},{label:'🔵 Personal',val:'Personal',cls:'personal'}]:tagOpts;
       finalTagOpts.forEach(({label,val,cls})=>{
-        const btn=document.createElement('button');btn.className='tag-option'+((t.tag===val)?' selected '+cls:'');btn.textContent=label;
-        btn.addEventListener('click',e=>{e.stopPropagation();if(t.tag===val){t.tag='';tp.querySelectorAll('.tag-option').forEach(b=>b.className='tag-option');}else{t.tag=val;tp.querySelectorAll('.tag-option').forEach(b=>b.className='tag-option');btn.className='tag-option selected '+cls;}});
+        const isSelected=parseTags(t.tag).includes(val);
+        const btn=document.createElement('button');btn.className='tag-option'+(isSelected?' selected '+cls:'');btn.textContent=label;
+        btn.addEventListener('click',e=>{
+          e.stopPropagation();
+          const tags=parseTags(t.tag);
+          const idx=tags.indexOf(val);
+          if(idx>=0)tags.splice(idx,1);else tags.push(val);
+          t.tag=serializeTags(tags);
+          btn.className='tag-option'+(tags.includes(val)?' selected '+cls:'');
+        });
         tp.appendChild(btn);
       });
       content.appendChild(tp);
@@ -429,7 +439,7 @@ rowWrap.appendChild(row);list.appendChild(rowWrap);
     } else {
       const txt=document.createElement('div');txt.className='task-text';txt.textContent=t.text;
       content.appendChild(txt);
-      if(t.tag){const badge=document.createElement('span');badge.className='tag-badge '+t.tag.toLowerCase();badge.textContent=t.tag;content.appendChild(badge);}
+      parseTags(t.tag).forEach(tag=>{const badge=document.createElement('span');badge.className='tag-badge '+tag.toLowerCase();badge.textContent=tag;content.appendChild(badge);});
       content.addEventListener('click',e=>{if(e.target.closest('[data-addnote]'))return;e.stopPropagation();startEdit(t.id,effGroup,effDayKey);});
     }
     if(isNoteEdit){
