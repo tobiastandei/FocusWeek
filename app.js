@@ -417,7 +417,9 @@ rowWrap.appendChild(row);list.appendChild(rowWrap);
       const tp=document.createElement('div');tp.className='tag-picker';
       const isCaptureLike=effDayKey==='quick-capture'||effDayKey==='reminders';
       const tagOpts=isCaptureLike?[{label:'🔴 Alta',val:'Alta',cls:'alta'},{label:'📅 Hoy',val:'Hoy',cls:'hoy'}]:[{label:'🔴 Alta',val:'Alta',cls:'alta'},{label:'🔵 Personal',val:'Personal',cls:'personal'}];
-      tagOpts.forEach(({label,val,cls})=>{
+      // In Hoy tab, also show Personal for capture-like tasks
+      const finalTagOpts=(isCaptureLike&&activeTab==='today')?[{label:'🔴 Alta',val:'Alta',cls:'alta'},{label:'📅 Hoy',val:'Hoy',cls:'hoy'},{label:'🔵 Personal',val:'Personal',cls:'personal'}]:tagOpts;
+      finalTagOpts.forEach(({label,val,cls})=>{
         const btn=document.createElement('button');btn.className='tag-option'+((t.tag===val)?' selected '+cls:'');btn.textContent=label;
         btn.addEventListener('click',e=>{e.stopPropagation();if(t.tag===val){t.tag='';tp.querySelectorAll('.tag-option').forEach(b=>b.className='tag-option');}else{t.tag=val;tp.querySelectorAll('.tag-option').forEach(b=>b.className='tag-option');btn.className='tag-option selected '+cls;}});
         tp.appendChild(btn);
